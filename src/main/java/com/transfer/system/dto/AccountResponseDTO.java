@@ -1,5 +1,6 @@
 package com.transfer.system.dto;
 
+import com.transfer.system.domain.AccountEntity;
 import com.transfer.system.enums.AccountStatus;
 import com.transfer.system.enums.AccountType;
 import com.transfer.system.enums.CurrencyType;
@@ -22,4 +23,19 @@ public class AccountResponseDTO {
     private AccountStatus accountStatus;
     private LocalDateTime createdTimeStamp;
     private LocalDateTime updatedTimeStamp;
+
+    public static AccountResponseDTO from(AccountEntity entity) {
+        return AccountResponseDTO.builder()
+                .accountId(entity.getAccountId())
+                .accountNumber(entity.getAccountNumber())
+                .accountName(entity.getAccountName())
+                .bankName(entity.getBankName())
+                .accountType(entity.getAccountType())
+                .currencyType(entity.getCurrencyType())
+                .balance(entity.getBalance())
+                .accountStatus(entity.getAccountStatus())
+                .createdTimeStamp(entity.getCreatedTimeStamp())
+                .updatedTimeStamp(entity.getUpdatedTimeStamp())
+                .build();
+    }
 }

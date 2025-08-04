@@ -5,9 +5,6 @@ import com.transfer.system.enums.AccountType;
 import com.transfer.system.enums.CurrencyType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -17,7 +14,6 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
 public class AccountEntity {
     @Id
     private Long accountId; // 계좌 고유 식별자
@@ -34,9 +30,7 @@ public class AccountEntity {
     @Enumerated(EnumType.STRING)
     private AccountStatus accountStatus; // 계좌 상태
 
-    @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdTimeStamp; // 계좌 생성 일시
-    @UpdateTimestamp
     private LocalDateTime updatedTimeStamp; // 계좌 정보 수정 일시
 }
