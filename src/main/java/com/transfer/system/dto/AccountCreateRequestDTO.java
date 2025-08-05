@@ -9,13 +9,12 @@ import lombok.Getter;
 import java.math.BigDecimal;
 
 @Getter
-public class AccountRequestDTO {
+public class AccountCreateRequestDTO {
     private String accountNumber;
     private String accountName;
     private String bankName;
     private AccountType accountType;
     private CurrencyType currencyType;
     private BigDecimal balance;
-
     private AccountStatus accountStatus;
 }

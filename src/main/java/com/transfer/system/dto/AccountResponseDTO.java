@@ -9,11 +9,12 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Builder
 public class AccountResponseDTO {
-    private Long accountId;
+    private UUID accountId;
     private String accountNumber;
     private String accountName;
     private String bankName;
