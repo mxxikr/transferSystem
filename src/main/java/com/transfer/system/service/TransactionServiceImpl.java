@@ -4,6 +4,7 @@ import com.transfer.system.domain.AccountEntity;
 import com.transfer.system.domain.TransactionEntity;
 import com.transfer.system.dto.TransactionRequestDTO;
 import com.transfer.system.dto.TransactionResponseDTO;
+import com.transfer.system.enums.AccountStatus;
 import com.transfer.system.enums.TransactionType;
 import com.transfer.system.exception.ErrorCode;
 import com.transfer.system.exception.TransferSystemException;
@@ -47,6 +48,10 @@ public class TransactionServiceImpl implements TransactionService {
         AccountEntity toAccount = accountRepository.findByAccountNumber(
                 transactionRequestDTO.getToAccountNumber()).orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
 
+        // 수신 계좌 상태 확인
+        if (toAccount.getAccountStatus() != AccountStatus.ACTIVE) {
+            throw new TransferSystemException(ErrorCode.RECEIVER_ACCOUNT_INACTIVE);
+        }
 
         BigDecimal amount = transactionRequestDTO.getAmount();
         BigDecimal fee = transferPolicy.calculateFee(amount); // 이체 수수료 계산
@@ -56,7 +61,7 @@ public class TransactionServiceImpl implements TransactionService {
             throw new TransferSystemException(ErrorCode.TRANSFER_LIMIT_EXCEEDED);
         }
 
-        if (fromAccount.getBalance().compareTo(amount) < 0) { // 출금 계좌의 잔액이 이체 금액보다 많아야 함
+        if (fromAccount.getBalance().compareTo(total) < 0) { // 출금 계좌의 잔액이 이체 금액보다 많아야 함
             throw new TransferSystemException(ErrorCode.INSUFFICIENT_BALANCE);
         }
 
@@ -73,8 +78,8 @@ public class TransactionServiceImpl implements TransactionService {
                 .fee(fee)
                 .createdTimeStamp(LocalDateTime.now())
                 .build();
-        
-        transactionRepository.save(transactionEntity);
-        return null;
+
+        TransactionEntity savedTransactionEntity = transactionRepository.save(transactionEntity);
+        return TransactionResponseDTO.from(savedTransactionEntity);
     }
 }

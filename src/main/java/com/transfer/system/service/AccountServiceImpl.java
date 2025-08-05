@@ -83,6 +83,13 @@ public class AccountServiceImpl implements AccountService {
     public void withdraw(String accountNumber, BigDecimal amount) {
         AccountEntity accountEntity = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        transferPolicy.validateWithdrawAmount(amount);
+
+        if (accountEntity.getBalance().compareTo(amount) < 0) {
+            throw new TransferSystemException(ErrorCode.INSUFFICIENT_BALANCE);
+        }
+
         accountEntity.subtractBalance(amount);
         accountRepository.save(accountEntity);
     }

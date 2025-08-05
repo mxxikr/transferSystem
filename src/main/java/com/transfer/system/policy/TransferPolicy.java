@@ -1,5 +1,7 @@
 package com.transfer.system.policy;
 
+import com.transfer.system.exception.ErrorCode;
+import com.transfer.system.exception.TransferSystemException;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -27,5 +29,11 @@ public class TransferPolicy {
 
     public BigDecimal calculateFee(BigDecimal amount) {
         return amount.multiply(feeRate).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public void validateWithdrawAmount(BigDecimal amount) {
+        if (amount.compareTo(withdrawDailyLimit) > 0) {
+            throw new TransferSystemException(ErrorCode.EXCEEDS_WITHDRAW_LIMIT);
+        }
     }
 }
