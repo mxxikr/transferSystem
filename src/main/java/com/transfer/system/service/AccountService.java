@@ -1,17 +1,18 @@
 package com.transfer.system.service;
 
-import com.transfer.system.dto.AccountRequestDTO;
+import com.transfer.system.dto.AccountCreateRequestDTO;
 import com.transfer.system.dto.AccountResponseDTO;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public interface AccountService {
 
-    AccountResponseDTO createAccount(AccountRequestDTO dto);
+    AccountResponseDTO createAccount(AccountCreateRequestDTO accountCreateRequestDTO);
 
-    AccountResponseDTO getAccount(Long id);
+    AccountResponseDTO getAccount(UUID id);
 
-    void deleteAccount(Long id);
+    void deleteAccount(UUID id);
 
     void deposit(String accountNumber, BigDecimal amount);
 
