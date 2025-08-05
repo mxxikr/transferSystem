@@ -7,6 +7,7 @@ import com.transfer.system.enums.AccountStatus;
 import com.transfer.system.enums.AccountType;
 import com.transfer.system.enums.CurrencyType;
 import com.transfer.system.enums.TransactionType;
+import com.transfer.system.exception.ErrorCode;
 import com.transfer.system.exception.TransferSystemException;
 import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
@@ -174,5 +175,39 @@ class TransactionServiceTest {
         when(transferPolicy.getTransferDailyLimit()).thenReturn(BigDecimal.valueOf(1000000));
 
         assertThrows(TransferSystemException.class, () -> transactionService.transfer(request));
+    }
+
+    /**
+     * 비활성 계좌로 이체 시도
+     **/
+    @Test
+    void transfer_toInactiveAccount_shouldThrow() {
+        // given
+        AccountEntity fromAccount = AccountEntity.builder()
+                .accountNumber("from001")
+                .balance(new BigDecimal("10000"))
+                .accountStatus(AccountStatus.ACTIVE)
+                .build();
+
+        AccountEntity toAccount = AccountEntity.builder()
+                .accountNumber("to001")
+                .balance(BigDecimal.ZERO)
+                .accountStatus(AccountStatus.INACTIVE) // 비활성 상태
+                .build();
+
+        when(accountRepository.findByAccountNumber("from001")).thenReturn(Optional.of(fromAccount));
+        when(accountRepository.findByAccountNumber("to001")).thenReturn(Optional.of(toAccount));
+
+        TransactionRequestDTO request = TransactionRequestDTO.builder()
+                .fromAccountNumber("from001")
+                .toAccountNumber("to001")
+                .amount(new BigDecimal("1000"))
+                .build();
+
+        // when & then
+        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
+                transactionService.transfer(request));
+
+        assertEquals(ErrorCode.RECEIVER_ACCOUNT_INACTIVE, ex.getErrorCode());
     }
 }
