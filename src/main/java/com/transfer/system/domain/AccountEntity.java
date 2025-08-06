@@ -66,7 +66,7 @@ public class AccountEntity {
     // 계좌 잔액 업데이트
     public void updateBalance(BigDecimal newBalance) {
         if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-            throw new TransferSystemException(ErrorCode.NEGATIVE_BALANCE_NOT_ALLOWED);
+            throw new TransferSystemException(ErrorCode.NEGATIVE_BALANCE);
         }
         this.balance = newBalance;
         this.updatedTimeStamp = LocalDateTime.now();

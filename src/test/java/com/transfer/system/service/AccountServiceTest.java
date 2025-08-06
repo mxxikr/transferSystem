@@ -39,14 +39,14 @@ class AccountServiceTest {
     void createAccount_success() {
         // given
         AccountCreateRequestDTO accountCreateRequestDTO = AccountCreateRequestDTO.builder()
-                .accountNumber("account123")
-                .accountName("mxxikr")
-                .bankName("mxxikrBank")
-                .accountType(AccountType.PERSONAL)
-                .currencyType(CurrencyType.KRW)
-                .balance(new BigDecimal("10000.00"))
-                .accountStatus(AccountStatus.ACTIVE)
-                .build();
+            .accountNumber("account123")
+            .accountName("mxxikr")
+            .bankName("mxxikrBank")
+            .accountType(AccountType.PERSONAL)
+            .currencyType(CurrencyType.KRW)
+            .balance(new BigDecimal("10000.00"))
+            .accountStatus(AccountStatus.ACTIVE)
+            .build();
 
         when(accountRepository.existsByAccountNumber("account123")).thenReturn(false);
         when(accountRepository.save(any(AccountEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -191,9 +191,9 @@ class AccountServiceTest {
     void withdraw_insufficientBalance_Throw() {
         // given
         AccountEntity mockAccount = AccountEntity.builder()
-                .accountNumber("account123")
-                .balance(BigDecimal.valueOf(100))
-                .build();
+            .accountNumber("account123")
+            .balance(BigDecimal.valueOf(100))
+            .build();
 
         when(accountRepository.findByAccountNumber("account123")).thenReturn(Optional.of(mockAccount));
 
@@ -209,9 +209,9 @@ class AccountServiceTest {
         // given
         BigDecimal overLimitAmount = new BigDecimal("1000001"); // 출금 정책 한도: 1000000
         AccountEntity mockAccount = AccountEntity.builder()
-                .accountNumber("account123")
-                .balance(overLimitAmount.add(BigDecimal.valueOf(1000))) // 충분한 잔액
-                .build();
+            .accountNumber("account123")
+            .balance(overLimitAmount.add(BigDecimal.valueOf(1000))) // 충분한 잔액
+            .build();
 
         when(accountRepository.findByAccountNumber("account123"))
                 .thenReturn(Optional.of(mockAccount));

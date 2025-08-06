@@ -13,9 +13,15 @@ public enum ErrorCode {
 
     // TRANSACTION
     INSUFFICIENT_BALANCE("잔액이 부족합니다.", HttpStatus.BAD_REQUEST),
-    NEGATIVE_BALANCE_NOT_ALLOWED("잔액은 음수가 될 수 없습니다..", HttpStatus.BAD_REQUEST),
+    NEGATIVE_BALANCE("잔액은 음수가 될 수 없습니다.", HttpStatus.BAD_REQUEST),
     TRANSFER_LIMIT_EXCEEDED("이체 한도를 초과했습니다.", HttpStatus.BAD_REQUEST),
     RECEIVER_ACCOUNT_INACTIVE("수신 계좌가 비활성화 상태입니다.", HttpStatus.BAD_REQUEST),
+    SENDER_ACCOUNT_INACTIVE("송신 계좌가 비활성화 상태입니다.", HttpStatus.BAD_REQUEST),
+    INVALID_AMOUNT("유효하지 않은 금액입니다.", HttpStatus.BAD_REQUEST),
+    INVALID_FEE("유효하지 않은 수수료입니다.", HttpStatus.BAD_REQUEST),
+    INVALID_REQUEST("유효하지 않은 요청입니다.", HttpStatus.BAD_REQUEST),
+    INVALID_ACCOUNT_NUMBER("유효하지 않은 계좌 번호입니다.", HttpStatus.BAD_REQUEST),
+    CURRENCY_TYPE_MISMATCH("통화 종류가 일치하지 않습니다.", HttpStatus.BAD_REQUEST),
 
     // ETC
     INTERNAL_ERROR("서버 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
