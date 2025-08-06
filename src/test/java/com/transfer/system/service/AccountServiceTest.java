@@ -33,7 +33,7 @@ class AccountServiceTest {
     }
 
     /**
-     * 계좌 생성 테스트 - 계좌 번호가 중복되지 않을 때 정상 생성
+     * 계좌 생성 테스트 - 정상 생성
      */
     @Test
     void createAccount_success() {
@@ -80,6 +80,26 @@ class AccountServiceTest {
 
         // then
         assertEquals(ErrorCode.DUPLICATE_ACCOUNT_NUMBER, exception.getErrorCode());
+    }
+
+    /**
+     * 계좌 생성 테스트 - 필수 값 누락
+     */
+    @Test
+    void createAccount_nullRequiredField_Throw() {
+        AccountCreateRequestDTO accountCreateRequestDTO = AccountCreateRequestDTO.builder()
+            .accountNumber(null)
+            .accountName("mxxikr")
+            .bankName("mxxikrBank")
+            .accountType(AccountType.PERSONAL)
+            .currencyType(CurrencyType.KRW)
+            .balance(BigDecimal.TEN)
+            .build();
+
+        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
+            accountService.createAccount(accountCreateRequestDTO));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, ex.getErrorCode());
     }
 
     /**
@@ -158,11 +178,11 @@ class AccountServiceTest {
     @Test
     void deposit_accountNotFound_Throw() {
         // given
-        when(accountRepository.findByAccountNumber("nonexist")).thenReturn(Optional.empty());
+        when(accountRepository.findByAccountNumber("account123")).thenReturn(Optional.empty());
 
         // when & then
         assertThrows(TransferSystemException.class, () -> {
-            accountService.deposit("nonexist", BigDecimal.valueOf(1000));
+            accountService.deposit("account123", BigDecimal.valueOf(1000));
         });
     }
 
@@ -202,7 +222,7 @@ class AccountServiceTest {
     }
 
     /**
-     * 출금 테스트 - 출금 한도 초과 시 예외 발생
+     * 출금 테스트 - 출금 한도 초과
      */
     @Test
     void withdraw_exceedsDailyLimit_Throw() {
@@ -226,5 +246,4 @@ class AccountServiceTest {
 
         assertEquals(ErrorCode.EXCEEDS_WITHDRAW_LIMIT, exception.getErrorCode());
     }
-
 }

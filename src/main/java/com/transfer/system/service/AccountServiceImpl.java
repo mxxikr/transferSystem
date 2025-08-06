@@ -26,6 +26,16 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public AccountResponseDTO createAccount(AccountCreateRequestDTO accountCreateRequestDTO) {
+        if (accountCreateRequestDTO == null) {
+            throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
+        }
+
+        if (accountCreateRequestDTO.getAccountNumber() == null || accountCreateRequestDTO.getAccountName() == null ||
+            accountCreateRequestDTO.getBankName() == null || accountCreateRequestDTO.getAccountType() == null ||
+            accountCreateRequestDTO.getCurrencyType() == null || accountCreateRequestDTO.getBalance() == null) {
+            throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
+        }
+
         if (accountRepository.existsByAccountNumber(accountCreateRequestDTO.getAccountNumber())) {
             throw new TransferSystemException(ErrorCode.DUPLICATE_ACCOUNT_NUMBER);
         }
@@ -51,7 +61,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public AccountResponseDTO getAccount(UUID id) {
         AccountEntity accountEntity = accountRepository.findById(id)
-                .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
+            .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
         return AccountResponseDTO.from(accountEntity);
     }
 
@@ -61,7 +71,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public void deleteAccount(UUID id) {
         AccountEntity accountEntity = accountRepository.findById(id)
-                .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
+            .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
         accountRepository.delete(accountEntity);
     }
 
@@ -70,8 +80,12 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public void deposit(String accountNumber, BigDecimal amount) {
+        if (accountNumber == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
+        }
+
         AccountEntity accountEntity = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
+            .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
         accountEntity.addBalance(amount);
         accountRepository.save(accountEntity);
     }
@@ -81,8 +95,12 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public void withdraw(String accountNumber, BigDecimal amount) {
+        if (accountNumber == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
+        }
+
         AccountEntity accountEntity = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
+            .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         transferPolicy.validateWithdrawAmount(amount);
 
