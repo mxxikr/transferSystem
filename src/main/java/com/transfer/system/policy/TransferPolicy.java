@@ -27,12 +27,18 @@ public class TransferPolicy {
         this.transferDailyLimit = transferDailyLimit;
     }
 
+    /**
+     * 수수료 계산
+     */
     public BigDecimal calculateFee(BigDecimal amount) {
         return amount.multiply(feeRate).setScale(2, RoundingMode.HALF_UP);
     }
 
-    public void validateWithdrawAmount(BigDecimal amount) {
-        if (amount.compareTo(withdrawDailyLimit) > 0) {
+    /**
+     * 이체 금액 검증
+     */
+    public void validateWithdrawAmount(String accountNumber, BigDecimal amount, BigDecimal todayWithdrawTotal) {
+        if (todayWithdrawTotal.add(amount).compareTo(withdrawDailyLimit) > 0) {
             throw new TransferSystemException(ErrorCode.EXCEEDS_WITHDRAW_LIMIT);
         }
     }

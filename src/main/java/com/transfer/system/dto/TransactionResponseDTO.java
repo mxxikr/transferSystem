@@ -23,8 +23,8 @@ public class TransactionResponseDTO {
     public static TransactionResponseDTO from(TransactionEntity entity) {
         return TransactionResponseDTO.builder()
             .transactionId(entity.getTransactionId())
-            .fromAccountNumber(entity.getFromAccount().getAccountNumber())
-            .toAccountNumber(entity.getToAccount().getAccountNumber())
+            .fromAccountNumber(entity.getFromAccount() != null ? entity.getFromAccount().getAccountNumber() : null)
+            .toAccountNumber(entity.getToAccount() != null ? entity.getToAccount().getAccountNumber() : null)
             .transactionType(entity.getTransactionType())
             .amount(entity.getAmount())
             .fee(entity.getFee())

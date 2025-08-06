@@ -9,6 +9,7 @@ import com.transfer.system.exception.ErrorCode;
 import com.transfer.system.exception.TransferSystemException;
 import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
+import com.transfer.system.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,14 +24,18 @@ class AccountServiceTest {
 
     private AccountRepository accountRepository;
     private TransferPolicy transferPolicy;
+    private TransactionRepository transactionRepository;
     private AccountServiceImpl accountService;
 
     @BeforeEach
     void setUp() {
         accountRepository = mock(AccountRepository.class);
         transferPolicy = mock(TransferPolicy.class);
-        accountService = new AccountServiceImpl(accountRepository, transferPolicy);
+        transactionRepository = mock(TransactionRepository.class);
+        accountService = new AccountServiceImpl(accountRepository, transferPolicy, transactionRepository);
     }
+
+    // ==================== 계좌 생성 테스트 ====================
 
     /**
      * 계좌 생성 테스트 - 정상 생성
@@ -53,6 +58,18 @@ class AccountServiceTest {
 
         // when & then
         assertDoesNotThrow(() -> accountService.createAccount(accountCreateRequestDTO));
+    }
+
+    /**
+     * 계좌 생성 테스트 - null DTO
+     */
+    @Test
+    void createAccount_nullDTO_Throw() {
+        // when & then
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.createAccount(null));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
     }
 
     /**
@@ -83,7 +100,7 @@ class AccountServiceTest {
     }
 
     /**
-     * 계좌 생성 테스트 - 필수 값 누락
+     * 계좌 생성 테스트 - 계좌 번호 누락
      */
     @Test
     void createAccount_nullRequiredField_Throw() {
@@ -102,6 +119,107 @@ class AccountServiceTest {
         assertEquals(ErrorCode.INVALID_REQUEST, ex.getErrorCode());
     }
 
+    /**
+     * 계좌 생성 테스트 - 계좌명 누락
+     */
+    @Test
+    void createAccount_nullAccountName_Throw() {
+        AccountCreateRequestDTO accountCreateRequestDTO = AccountCreateRequestDTO.builder()
+            .accountNumber("account123")
+            .accountName(null)
+            .bankName("mxxikrBank")
+            .accountType(AccountType.PERSONAL)
+            .currencyType(CurrencyType.KRW)
+            .balance(BigDecimal.TEN)
+            .build();
+
+        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
+            accountService.createAccount(accountCreateRequestDTO));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, ex.getErrorCode());
+    }
+
+    /**
+     * 계좌 생성 테스트 - 은행명 누락
+     */
+    @Test
+    void createAccount_nullBankName_Throw() {
+        AccountCreateRequestDTO accountCreateRequestDTO = AccountCreateRequestDTO.builder()
+            .accountNumber("account123")
+            .accountName("mxxikr")
+            .bankName(null)
+            .accountType(AccountType.PERSONAL)
+            .currencyType(CurrencyType.KRW)
+            .balance(BigDecimal.TEN)
+            .build();
+
+        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
+            accountService.createAccount(accountCreateRequestDTO));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, ex.getErrorCode());
+    }
+
+    /**
+     * 계좌 생성 테스트 - 계좌 유형 누락
+     */
+    @Test
+    void createAccount_nullAccountType_Throw() {
+        AccountCreateRequestDTO accountCreateRequestDTO = AccountCreateRequestDTO.builder()
+            .accountNumber("account123")
+            .accountName("mxxikr")
+            .bankName("mxxikrBank")
+            .accountType(null)
+            .currencyType(CurrencyType.KRW)
+            .balance(BigDecimal.TEN)
+            .build();
+
+        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
+            accountService.createAccount(accountCreateRequestDTO));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, ex.getErrorCode());
+    }
+
+    /**
+     * 계좌 생성 테스트 - 통화 종류 누락
+     */
+    @Test
+    void createAccount_nullCurrencyType_Throw() {
+        AccountCreateRequestDTO accountCreateRequestDTO = AccountCreateRequestDTO.builder()
+            .accountNumber("account123")
+            .accountName("mxxikr")
+            .bankName("mxxikrBank")
+            .accountType(AccountType.PERSONAL)
+            .currencyType(null)
+            .balance(BigDecimal.TEN)
+            .build();
+
+        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
+            accountService.createAccount(accountCreateRequestDTO));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, ex.getErrorCode());
+    }
+
+    /**
+     * 계좌 생성 테스트 - 잔액 누락
+     */
+    @Test
+    void createAccount_nullBalance_Throw() {
+        AccountCreateRequestDTO accountCreateRequestDTO = AccountCreateRequestDTO.builder()
+            .accountNumber("account123")
+            .accountName("mxxikr")
+            .bankName("mxxikrBank")
+            .accountType(AccountType.PERSONAL)
+            .currencyType(CurrencyType.KRW)
+            .balance(null)
+            .build();
+
+        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
+            accountService.createAccount(accountCreateRequestDTO));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, ex.getErrorCode());
+    }
+
+    // ==================== 계좌 조회 테스트 ====================
     /**
      * 계좌 조회 테스트 - 성공
      */
@@ -139,6 +257,7 @@ class AccountServiceTest {
         assertThrows(TransferSystemException.class, () -> accountService.getAccount(accountId));
     }
 
+    // ==================== 계좌 삭제 테스트 ====================
     /**
      * 계좌 삭제 테스트 - 성공
      */
@@ -155,6 +274,23 @@ class AccountServiceTest {
     }
 
     /**
+     * 계좌 삭제 테스트 - 존재하지 않는 계좌
+     */
+    @Test
+    void deleteAccount_notFound_Throw() {
+        // given
+        UUID accountId = UUID.randomUUID();
+        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+
+        // when & then
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.deleteAccount(accountId));
+
+        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND, exception.getErrorCode());
+    }
+
+    // ==================== 입금 테스트 ====================
+    /**
      * 입금 테스트 - 성공
      */
     @Test
@@ -165,7 +301,7 @@ class AccountServiceTest {
             .balance(BigDecimal.valueOf(1000))
             .build();
 
-        when(accountRepository.findByAccountNumber("account123")).thenReturn(Optional.of(mockAccount));
+        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(mockAccount));
         when(accountRepository.save(any())).thenReturn(mockAccount);
 
         // when & then
@@ -173,12 +309,12 @@ class AccountServiceTest {
     }
 
     /**
-     * 입금 테스트 - 실패
+     * 입금 테스트 - 존재하지 않는 계좌
      */
     @Test
     void deposit_accountNotFound_Throw() {
         // given
-        when(accountRepository.findByAccountNumber("account123")).thenReturn(Optional.empty());
+        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.empty());
 
         // when & then
         assertThrows(TransferSystemException.class, () -> {
@@ -187,38 +323,110 @@ class AccountServiceTest {
     }
 
     /**
+     * 입금 테스트 - null 계좌번호
+     */
+    @Test
+    void deposit_nullAccountNumber_Throw() {
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.deposit(null, BigDecimal.valueOf(1000)));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    /**
+     * 입금 테스트 - null 금액
+     */
+    @Test
+    void deposit_nullAmount_Throw() {
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.deposit("account123", null));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    /**
+     * 입금 테스트 - 음수 금액
+     */
+    @Test
+    void deposit_negativeAmount_Throw() {
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.deposit("account123", BigDecimal.valueOf(-100)));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    /**
+     * 입금 테스트 - 0 금액
+     */
+    @Test
+    void deposit_zeroAmount_Throw() {
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.deposit("account123", BigDecimal.ZERO));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    // ==================== 출금 테스트 ====================
+    /**
      * 출금 테스트 - 성공
      */
     @Test
     void withdraw_success() {
         // given
-        AccountEntity mockAccount = AccountEntity.builder()
-            .accountNumber("account123")
-            .balance(BigDecimal.valueOf(1000))
-            .build();
+        String accountNumber = "account123";
+        BigDecimal withdrawAmount = BigDecimal.valueOf(500);
+        BigDecimal todayTotal = BigDecimal.valueOf(0);
 
-        when(accountRepository.findByAccountNumber("account123")).thenReturn(Optional.of(mockAccount));
+        AccountEntity mockAccount = AccountEntity.builder()
+                .accountNumber(accountNumber)
+                .balance(BigDecimal.valueOf(1000))
+                .build();
+
+        when(accountRepository.findByAccountNumberLock(accountNumber)).thenReturn(Optional.of(mockAccount));
         when(accountRepository.save(any())).thenReturn(mockAccount);
+        when(transactionRepository.getTodayWithdrawTotalFromAccount(accountNumber)).thenReturn(todayTotal);
+        when(transactionRepository.save(any())).thenReturn(null);
 
         // when & then
         assertDoesNotThrow(() -> accountService.withdraw("account123", BigDecimal.valueOf(500)));
+        verify(transferPolicy).validateWithdrawAmount(accountNumber, withdrawAmount, todayTotal);
     }
 
     /**
-     * 출금 테스트 - 실패
+     * 출금 테스트 - 존재하지 않는 계좌
+     */
+    @Test
+    void withdraw_accountNotFound_Throw() {
+        // given
+        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.empty());
+
+        // when & then
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.withdraw("account123", BigDecimal.valueOf(500)));
+
+        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND, exception.getErrorCode());
+    }
+
+    /**
+     * 출금 테스트 - 잔액 부족
      */
     @Test
     void withdraw_insufficientBalance_Throw() {
         // given
+        String accountNumber = "account123";
+        BigDecimal withdrawAmount = BigDecimal.valueOf(500);
+        BigDecimal todayTotal = BigDecimal.valueOf(0);
+
         AccountEntity mockAccount = AccountEntity.builder()
-            .accountNumber("account123")
+            .accountNumber(accountNumber)
             .balance(BigDecimal.valueOf(100))
             .build();
 
-        when(accountRepository.findByAccountNumber("account123")).thenReturn(Optional.of(mockAccount));
+        when(accountRepository.findByAccountNumberLock(accountNumber)).thenReturn(Optional.of(mockAccount));
+        when(transactionRepository.getTodayWithdrawTotalFromAccount(accountNumber)).thenReturn(todayTotal);
 
         // when & then
-        assertThrows(TransferSystemException.class, () -> accountService.withdraw("account123", BigDecimal.valueOf(500)));
+        assertThrows(TransferSystemException.class, () -> accountService.withdraw(accountNumber, withdrawAmount));
     }
 
     /**
@@ -227,23 +435,73 @@ class AccountServiceTest {
     @Test
     void withdraw_exceedsDailyLimit_Throw() {
         // given
-        BigDecimal overLimitAmount = new BigDecimal("1000001"); // 출금 정책 한도: 1000000
+        String accountNumber = "account123";
+        BigDecimal overLimitAmount = new BigDecimal("1000001");
+        BigDecimal todayTotal = BigDecimal.ZERO;
+
         AccountEntity mockAccount = AccountEntity.builder()
             .accountNumber("account123")
-            .balance(overLimitAmount.add(BigDecimal.valueOf(1000))) // 충분한 잔액
+            .balance(overLimitAmount.add(BigDecimal.valueOf(1000)))
             .build();
 
-        when(accountRepository.findByAccountNumber("account123"))
-                .thenReturn(Optional.of(mockAccount));
+        when(accountRepository.findByAccountNumberLock(accountNumber))
+            .thenReturn(Optional.of(mockAccount));
+        when(transactionRepository.getTodayWithdrawTotalFromAccount(accountNumber))
+            .thenReturn(todayTotal);
 
         // 정책 위반 시 예외 발생하도록 설정
         doThrow(new TransferSystemException(ErrorCode.EXCEEDS_WITHDRAW_LIMIT))
-                .when(transferPolicy).validateWithdrawAmount(overLimitAmount);
+            .when(transferPolicy).validateWithdrawAmount(accountNumber, overLimitAmount, todayTotal);
 
         // when & then
         TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-                accountService.withdraw("account123", overLimitAmount));
+            accountService.withdraw("account123", overLimitAmount));
 
         assertEquals(ErrorCode.EXCEEDS_WITHDRAW_LIMIT, exception.getErrorCode());
+        verify(transferPolicy).validateWithdrawAmount(accountNumber, overLimitAmount, todayTotal);
+    }
+
+    /**
+     * 출금 테스트 - null 계좌번호
+     */
+    @Test
+    void withdraw_nullAccountNumber_Throw() {
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.withdraw(null, BigDecimal.valueOf(500)));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    /**
+     * 출금 테스트 - null 금액
+     */
+    @Test
+    void withdraw_nullAmount_Throw() {
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.withdraw("account123", null));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    /**
+     * 출금 테스트 - 음수 금액
+     */
+    @Test
+    void withdraw_negativeAmount_Throw() {
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.withdraw("account123", BigDecimal.valueOf(-100)));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    /**
+     * 출금 테스트 - 0 금액
+     */
+    @Test
+    void withdraw_zeroAmount_Throw() {
+        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
+            accountService.withdraw("account123", BigDecimal.ZERO));
+
+        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
     }
 }
