@@ -115,7 +115,7 @@ class AccountControllerTest {
         }
 
         @Test
-        void createAccount_missingRequiredFields_handleException() throws Exception {
+        void createAccount_missingRequiredFields_Throws() throws Exception {
             AccountCreateRequestDTO requestDTO = AccountCreateRequestDTO.builder()
                 .accountNumber(null)
                 .accountName("mxxikr")
@@ -136,7 +136,7 @@ class AccountControllerTest {
         }
 
         @Test
-        void createAccount_duplicateAccount_handleException() throws Exception {
+        void createAccount_duplicateAccount_Throws() throws Exception {
             when(accountService.createAccount(any(AccountCreateRequestDTO.class)))
                 .thenThrow(new TransferSystemException(ErrorCode.DUPLICATE_ACCOUNT_NUMBER));
 
@@ -173,7 +173,7 @@ class AccountControllerTest {
         }
 
         @Test
-        void getAccount_notFound_handleException() throws Exception {
+        void getAccount_notFound_Throws() throws Exception {
             UUID accountId = UUID.randomUUID();
             when(accountService.getAccount(accountId))
                     .thenThrow(new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
@@ -218,7 +218,7 @@ class AccountControllerTest {
         }
 
         @Test
-        void deleteAccount_notFound_handleException() throws Exception {
+        void deleteAccount_notFound_Throws() throws Exception {
             UUID accountId = UUID.randomUUID();
             doThrow(new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND))
                 .when(accountService).deleteAccount(accountId);
@@ -259,7 +259,7 @@ class AccountControllerTest {
         }
 
         @Test
-        void deposit_accountNotFound_handleException() throws Exception {
+        void deposit_accountNotFound_Throws() throws Exception {
             String accountNumber = "nonexistent";
             BigDecimal amount = new BigDecimal("50000");
             AccountBalanceRequestDTO requestDTO = AccountBalanceRequestDTO.builder()
@@ -284,7 +284,6 @@ class AccountControllerTest {
     // ========================= 출금 테스트 =========================
     @Nested
     class WithdrawTest {
-
         @Test
         void withdraw_success() throws Exception {
             String accountNumber = "account123";
@@ -307,7 +306,7 @@ class AccountControllerTest {
         }
 
         @Test
-        void withdraw_insufficientBalance_handleException() throws Exception {
+        void withdraw_insufficientBalance_Throws() throws Exception {
             String accountNumber = "account123";
             BigDecimal amount = new BigDecimal("1000000");
             AccountBalanceRequestDTO requestDTO = AccountBalanceRequestDTO.builder()
