@@ -1,3 +1,4 @@
+
 package com.transfer.system.service;
 
 import com.transfer.system.domain.AccountEntity;
@@ -5,6 +6,7 @@ import com.transfer.system.domain.TransactionEntity;
 import com.transfer.system.dto.TransactionRequestDTO;
 import com.transfer.system.dto.TransactionResponseDTO;
 import com.transfer.system.enums.AccountStatus;
+import com.transfer.system.enums.AccountType;
 import com.transfer.system.enums.CurrencyType;
 import com.transfer.system.enums.TransactionType;
 import com.transfer.system.exception.ErrorCode;
@@ -14,8 +16,16 @@ import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
 import com.transfer.system.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,664 +34,464 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TransactionServiceTest {
+
+    @Mock
     private AccountRepository accountRepository;
+
+    @Mock
     private TransactionRepository transactionRepository;
+
+    @Mock
     private TransferPolicy transferPolicy;
+
+    @Mock
     private PagingPolicy pagingPolicy;
+
     private TransactionServiceImpl transactionService;
+
+    private TransactionRequestDTO transactionRequestDTO;
+    private AccountEntity fromAccountEntity;
+    private AccountEntity toAccountEntity;
+    private TransactionEntity transactionEntity;
 
     @BeforeEach
     void setUp() {
-        accountRepository = mock(AccountRepository.class);
-        transactionRepository = mock(TransactionRepository.class);
-        transferPolicy = mock(TransferPolicy.class);
-        pagingPolicy = mock(PagingPolicy.class);
-        transactionService = new TransactionServiceImpl(accountRepository, transactionRepository, transferPolicy, pagingPolicy);
-    }
+        transactionService = new TransactionServiceImpl(
+                accountRepository, transactionRepository, transferPolicy, pagingPolicy);
 
-    // ==================== 이체 테스트 ====================
-    /**
-     * 이체 테스트 - 송, 수신 계좌 활성
-     */
-    @Test
-    void transfer_success() {
-        // given
-        BigDecimal amount = new BigDecimal("100000");
-        BigDecimal fee = new BigDecimal("1000");
-        BigDecimal total = amount.add(fee);
-
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
+        transactionRequestDTO = TransactionRequestDTO.builder()
             .fromAccountNumber("account123")
             .toAccountNumber("account456")
-            .amount(amount)
+            .amount(new BigDecimal("100000"))
             .build();
 
-        AccountEntity fromAccountEntity = AccountEntity.builder() // 송신 계좌
+        fromAccountEntity = AccountEntity.builder()
+            .accountId(UUID.randomUUID())
             .accountNumber("account123")
+            .accountName("sender")
+            .bankName("TestBank")
+            .accountType(AccountType.PERSONAL)
+            .currencyType(CurrencyType.KRW)
             .balance(new BigDecimal("200000"))
             .accountStatus(AccountStatus.ACTIVE)
-            .currencyType(CurrencyType.KRW)
             .build();
 
-        AccountEntity toAccountEntity = AccountEntity.builder() // 수신 계좌
+        toAccountEntity = AccountEntity.builder()
+            .accountId(UUID.randomUUID())
             .accountNumber("account456")
-            .balance(new BigDecimal("500"))
-            .accountStatus(AccountStatus.ACTIVE)
+            .accountName("receiver")
+            .bankName("TestBank")
+            .accountType(AccountType.PERSONAL)
             .currencyType(CurrencyType.KRW)
+            .balance(new BigDecimal("100000"))
+            .accountStatus(AccountStatus.ACTIVE)
             .build();
 
-        TransactionEntity savedTransaction = TransactionEntity.builder()
+        transactionEntity = TransactionEntity.builder()
             .transactionId(UUID.randomUUID())
             .fromAccount(fromAccountEntity)
             .toAccount(toAccountEntity)
-            .amount(amount)
-            .fee(fee)
+            .transactionType(TransactionType.TRANSFER)
+            .amount(new BigDecimal("100000"))
+            .fee(new BigDecimal("1000"))
             .createdTimeStamp(LocalDateTime.now())
             .build();
+    }
 
+    // ========================== 공통 메서드 =========================
+
+    /**
+     * 이체 시 예외 처리
+     */
+    private void expectTransferException(TransactionRequestDTO dto, ErrorCode expectedError) {
+        TransferSystemException exception = assertThrows(TransferSystemException.class,
+                () -> transactionService.transfer(dto));
+        assertEquals(expectedError, exception.getErrorCode());
+    }
+
+    /**
+     * 거래 내역 조회 시 예외 처리
+     */
+    private void expectHistoryException(String accountNumber, int page, int size, ErrorCode expectedError) {
+        TransferSystemException exception = assertThrows(TransferSystemException.class,
+                () -> transactionService.getTransactionHistory(accountNumber, page, size));
+        assertEquals(expectedError, exception.getErrorCode());
+    }
+
+    /**
+     * 이체 성공 시 공통 Mock 설정
+     */
+    private void setupSuccessfulTransferMocks() {
         when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
         when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
-
-        when(transferPolicy.calculateFee(amount)).thenReturn(fee);
-        when(transferPolicy.getTransferDailyLimit()).thenReturn(new BigDecimal("3000000"));
-
+        when(transferPolicy.calculateFee(any(BigDecimal.class))).thenReturn(new BigDecimal("1000"));
+        when(transferPolicy.getTransferDailyLimit()).thenReturn(new BigDecimal("5000000"));
         when(transactionRepository.getTodayTransferTotalFromAccount("account123")).thenReturn(BigDecimal.ZERO);
-
-        when(transactionRepository.save(any(TransactionEntity.class))).thenReturn(savedTransaction);
-
-        // when / then
-        assertDoesNotThrow(() -> transactionService.transfer(transactionRequestDTO));
-        verify(transactionRepository).save(any(TransactionEntity.class));
+        when(transactionRepository.save(any(TransactionEntity.class))).thenReturn(transactionEntity);
     }
 
-    /**
-     * 이체 테스트 - null DTO
-     */
-    @Test
-    void transfer_nullDTO_Throw() {
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(null));
+    // ========================= 이체 테스트 =========================
+    @Nested
+    class TransferTest {
 
-        assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
-    }
+        /**
+         * 이체 성공
+         */
+        @Test
+        void transfer_success() {
+            setupSuccessfulTransferMocks();
 
-    /**
-     * 이체 테스트 - null 출금 계좌번호
-     */
-    @Test
-    void transfer_nullFromAccountNumber_Throw() {
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber(null)
-            .toAccountNumber("account456")
-            .amount(BigDecimal.valueOf(100))
-            .build();
+            TransactionResponseDTO result = transactionService.transfer(transactionRequestDTO);
 
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
+            assertNotNull(result);
+            assertEquals("account123", result.getFromAccountNumber());
+            assertEquals("account456", result.getToAccountNumber());
+            assertEquals(new BigDecimal("100000"), result.getAmount());
+            verify(transactionRepository).save(any(TransactionEntity.class));
+        }
 
-        assertEquals(ErrorCode.INVALID_ACCOUNT_NUMBER, exception.getErrorCode());
-    }
+        /**
+         * 이체 시 null DTO
+         */
+        @Test
+        void transfer_nullDto() {
+            expectTransferException(null, ErrorCode.INVALID_REQUEST);
+        }
 
-    /**
-     * 이체 테스트 - null 입금 계좌번호
-     */
-    @Test
-    void transfer_nullToAccountNumber_Throw() {
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber(null)
-            .amount(BigDecimal.valueOf(100))
-            .build();
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.INVALID_ACCOUNT_NUMBER, exception.getErrorCode());
-    }
-
-    /**
-     * 이체 테스트 - 동일 계좌 간 이체
-     */
-    @Test
-    void transfer_sameAccount_Throw() {
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber("account123")
-            .amount(new BigDecimal("100"))
-            .build();
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.TRANSFER_SAME_ACCOUNT, exception.getErrorCode());
-    }
-
-    /**
-     * 이체 테스트 - null 금액
-     */
-    @Test
-    void transfer_nullAmount_Throw() {
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber("account456")
-            .amount(null)
-            .build();
-
-        AccountEntity fromAccount = AccountEntity.builder()
-            .accountNumber("account123")
-            .balance(BigDecimal.valueOf(1000))
-            .accountStatus(AccountStatus.ACTIVE)
-            .currencyType(CurrencyType.KRW)
-            .build();
-
-        AccountEntity toAccount = AccountEntity.builder()
-            .accountNumber("account456")
-            .balance(BigDecimal.valueOf(500))
-            .accountStatus(AccountStatus.ACTIVE)
-            .currencyType(CurrencyType.KRW)
-            .build();
-
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccount));
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.INVALID_AMOUNT, exception.getErrorCode());
-    }
-
-    /**
-     * 이체 테스트 - 0원 이체
-     */
-    @Test
-    void transfer_zeroAmount_Throw() {
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber("account456")
-            .amount(BigDecimal.ZERO)
-            .build();
-
-        AccountEntity fromAccount = AccountEntity.builder()
-            .accountNumber("account123")
-            .balance(BigDecimal.valueOf(1000))
-            .accountStatus(AccountStatus.ACTIVE)
-            .currencyType(CurrencyType.KRW)
-            .build();
-
-        AccountEntity toAccount = AccountEntity.builder()
-            .accountNumber("account456")
-            .balance(BigDecimal.valueOf(500))
-            .accountStatus(AccountStatus.ACTIVE)
-            .currencyType(CurrencyType.KRW)
-            .build();
-
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccount));
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.INVALID_AMOUNT, exception.getErrorCode());
-    }
-
-    /**
-     * 이체 테스트 - 음수 금액
-     */
-    @Test
-    void transfer_negativeAmount_Throw() {
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber("account456")
-            .amount(new BigDecimal("-100"))
-            .build();
-
-        AccountEntity fromAccount = AccountEntity.builder()
-            .accountNumber("account123")
-            .balance(BigDecimal.valueOf(1000))
-            .accountStatus(AccountStatus.ACTIVE)
-            .currencyType(CurrencyType.KRW)
-            .build();
-
-        AccountEntity toAccount = AccountEntity.builder()
-            .accountNumber("account456")
-            .balance(BigDecimal.valueOf(500))
-            .accountStatus(AccountStatus.ACTIVE)
-            .currencyType(CurrencyType.KRW)
-            .build();
-
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccount));
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.INVALID_AMOUNT, exception.getErrorCode());
-    }
-
-
-
-    /**
-     * 이체 테스트 - 출금 계좌 없음
-     */
-    @Test
-    void transfer_fromAccountNotFound_Throw() {
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber("account456")
-            .amount(new BigDecimal("100"))
-            .build();
-
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.empty());
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND, exception.getErrorCode());
-    }
-
-    /**
-     * 이체 테스트 - 입금 계좌 없음
-     */
-    @Test
-    void transfer_toAccountNotFound_Throw() {
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber("account456")
-            .amount(new BigDecimal("100"))
-            .build();
-
-        AccountEntity fromAccount = AccountEntity.builder()
-            .accountNumber("account123")
-            .balance(BigDecimal.valueOf(5000))
-            .build();
-
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.empty());
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND, exception.getErrorCode());
-    }
-
-    /**
-     * 이체 테스트 - 송신 계좌 비활성
-     */
-    @Test
-    void transfer_fromInactiveAccount_Throw() {
-        AccountEntity fromAccountEntity = AccountEntity.builder()
-            .accountNumber("account123")
-            .balance(BigDecimal.valueOf(1000))
-            .accountStatus(AccountStatus.INACTIVE)
-            .currencyType(CurrencyType.KRW)
-            .build();
-
-        AccountEntity toAccountEntity = AccountEntity.builder()
-            .accountNumber("account456")
-            .balance(BigDecimal.ZERO)
-            .accountStatus(AccountStatus.ACTIVE)
-            .currencyType(CurrencyType.KRW)
-            .build();
-
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
-
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber("account456")
-            .amount(BigDecimal.valueOf(100))
-            .build();
-
-        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.SENDER_ACCOUNT_INACTIVE, ex.getErrorCode());
-    }
-
-
-    /**
-     * 이체 테스트 - 수신 계좌 비활성
-     **/
-    @Test
-    void transfer_toInactiveAccount_Throw() {
-        // given
-        AccountEntity fromAccountEntity = AccountEntity.builder()
-            .accountNumber("account123")
-            .balance(new BigDecimal("10000"))
-            .accountStatus(AccountStatus.ACTIVE)
-            .build();
-
-        AccountEntity toAccountEntity = AccountEntity.builder()
-            .accountNumber("account456")
-            .balance(BigDecimal.ZERO)
-            .accountStatus(AccountStatus.INACTIVE) // 비활성 상태
-            .build();
-
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
-
-        TransactionRequestDTO transactionRequestDTO =TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber("account456")
-            .amount(new BigDecimal("1000"))
-            .build();
-
-        // when & then
-        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
-            transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.RECEIVER_ACCOUNT_INACTIVE, ex.getErrorCode());
-    }
-
-    /**
-     * 이체 테스트 - 통화 불일치
-     */
-    @Test
-    void transfer_currencyMismatch_Throw() {
-        AccountEntity fromAccountEntity = AccountEntity.builder()
-                .accountNumber("account123")
-                .currencyType(CurrencyType.KRW)
-                .balance(BigDecimal.valueOf(10000))
-                .accountStatus(AccountStatus.ACTIVE)
+        /**
+         * 이체 시 null 출금 계좌번호
+         */
+        @Test
+        void transfer_nullFromAccountNumber() {
+            TransactionRequestDTO dto = TransactionRequestDTO.builder()
+                .fromAccountNumber(null)
+                .toAccountNumber("account456")
+                .amount(new BigDecimal("100000"))
                 .build();
 
-        AccountEntity toAccountEntity = AccountEntity.builder()
+            expectTransferException(dto, ErrorCode.INVALID_ACCOUNT_NUMBER);
+        }
+
+        /**
+         * 이체 시 null 입금 계좌번호
+         */
+        @Test
+        void transfer_nullToAccountNumber() {
+            TransactionRequestDTO dto = TransactionRequestDTO.builder()
+                .fromAccountNumber("account123")
+                .toAccountNumber(null)
+                .amount(new BigDecimal("100000"))
+                .build();
+
+            expectTransferException(dto, ErrorCode.INVALID_ACCOUNT_NUMBER);
+        }
+
+        /**
+         * 이체 시 동일 계좌 간 이체
+         */
+        @Test
+        void transfer_sameAccount() {
+            TransactionRequestDTO dto = TransactionRequestDTO.builder()
+                .fromAccountNumber("account123")
+                .toAccountNumber("account123")
+                .amount(new BigDecimal("100000"))
+                .build();
+
+            expectTransferException(dto, ErrorCode.TRANSFER_SAME_ACCOUNT);
+        }
+
+        /**
+         * 이체 시 null 금액
+         */
+        @Test
+        void transfer_nullAmount() {
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+
+            TransactionRequestDTO dto = TransactionRequestDTO.builder()
+                .fromAccountNumber("account123")
+                .toAccountNumber("account456")
+                .amount(null)
+                .build();
+
+            expectTransferException(dto, ErrorCode.INVALID_AMOUNT);
+        }
+
+        /**
+         * 이체 시 0원 이체
+         */
+        @Test
+        void transfer_zeroAmount() {
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+
+            TransactionRequestDTO dto = TransactionRequestDTO.builder()
+                .fromAccountNumber("account123")
+                .toAccountNumber("account456")
+                .amount(BigDecimal.ZERO)
+                .build();
+
+            expectTransferException(dto, ErrorCode.INVALID_AMOUNT);
+        }
+
+        /**
+         * 이체 시 음수 금액
+         */
+        @Test
+        void transfer_negativeAmount() {
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+
+            TransactionRequestDTO dto = TransactionRequestDTO.builder()
+                .fromAccountNumber("account123")
+                .toAccountNumber("account456")
+                .amount(new BigDecimal("-1000"))
+                .build();
+
+            expectTransferException(dto, ErrorCode.INVALID_AMOUNT);
+        }
+
+        /**
+         * 이체 시 출금 계좌 없음
+         */
+        @Test
+        void transfer_fromAccountNotFound() {
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+            when(accountRepository.findByAccountNumberLock("nonexistent")).thenReturn(Optional.empty());
+
+            TransactionRequestDTO dto = TransactionRequestDTO.builder()
+                .fromAccountNumber("nonexistent")
+                .toAccountNumber("account456")
+                .amount(new BigDecimal("100000"))
+                .build();
+
+            expectTransferException(dto, ErrorCode.ACCOUNT_NOT_FOUND);
+        }
+
+        /**
+         * 이체 시 입금 계좌 없음
+         */
+        @Test
+        void transfer_toAccountNotFound() {
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
+            when(accountRepository.findByAccountNumberLock("nonexistent")).thenReturn(Optional.empty());
+
+            TransactionRequestDTO dto = TransactionRequestDTO.builder()
+                .fromAccountNumber("account123")
+                .toAccountNumber("nonexistent")
+                .amount(new BigDecimal("100000"))
+                .build();
+
+            expectTransferException(dto, ErrorCode.ACCOUNT_NOT_FOUND);
+        }
+
+        /**
+         * 이체 시 송신 계좌 비활성
+         */
+        @Test
+        void transfer_fromInactiveAccount() {
+            AccountEntity inactiveFromAccount = AccountEntity.builder()
+                .accountId(UUID.randomUUID())
+                .accountNumber("account123")
+                .accountName("sender")
+                .bankName("TestBank")
+                .accountType(AccountType.PERSONAL)
+                .currencyType(CurrencyType.KRW)
+                .balance(new BigDecimal("200000"))
+                .accountStatus(AccountStatus.INACTIVE)
+                .build();
+
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(inactiveFromAccount));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+
+            expectTransferException(transactionRequestDTO, ErrorCode.SENDER_ACCOUNT_INACTIVE);
+        }
+
+        /**
+         * 이체 시 수신 계좌 비활성
+         */
+        @Test
+        void transfer_toInactiveAccount() {
+            AccountEntity inactiveToAccount = AccountEntity.builder()
+                .accountId(UUID.randomUUID())
                 .accountNumber("account456")
+                .accountName("receiver")
+                .bankName("TestBank")
+                .accountType(AccountType.PERSONAL)
+                .currencyType(CurrencyType.KRW)
+                .balance(new BigDecimal("100000"))
+                .accountStatus(AccountStatus.INACTIVE)
+                .build();
+
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(inactiveToAccount));
+
+            expectTransferException(transactionRequestDTO, ErrorCode.RECEIVER_ACCOUNT_INACTIVE);
+        }
+
+        /**
+         * 이체 시 통화 불일치
+         */
+        @Test
+        void transfer_currencyMismatch() {
+            AccountEntity usdAccount = AccountEntity.builder()
+                .accountId(UUID.randomUUID())
+                .accountNumber("account456")
+                .accountName("receiver")
+                .bankName("TestBank")
+                .accountType(AccountType.PERSONAL)
                 .currencyType(CurrencyType.USD)
-                .balance(BigDecimal.ZERO)
+                .balance(new BigDecimal("100000"))
                 .accountStatus(AccountStatus.ACTIVE)
                 .build();
 
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(usdAccount));
 
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-                .fromAccountNumber("account123")
-                .toAccountNumber("account456")
-                .amount(BigDecimal.valueOf(100))
-                .build();
+            expectTransferException(transactionRequestDTO, ErrorCode.CURRENCY_TYPE_MISMATCH);
+        }
 
-        TransferSystemException ex = assertThrows(TransferSystemException.class, () ->
-                transactionService.transfer(transactionRequestDTO));
+        /**
+         * 이체 시 수수료 null 처리
+         */
+        @Test
+        void transfer_nullFee() {
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+            when(transferPolicy.calculateFee(any(BigDecimal.class))).thenReturn(null);
 
-        assertEquals(ErrorCode.CURRENCY_TYPE_MISMATCH, ex.getErrorCode());
-    }
+            expectTransferException(transactionRequestDTO, ErrorCode.INVALID_FEE);
+        }
 
-    /**
-     * 이체 테스트 - 수수료 null 처리
-     */
-    @Test
-    void transfer_nullFee_Throw() {
-        BigDecimal amount = new BigDecimal("100000");
+        /**
+         * 이체 시 수수료 음수 처리
+         */
+        @Test
+        void transfer_negativeFee() {
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+            when(transferPolicy.calculateFee(any(BigDecimal.class))).thenReturn(new BigDecimal("-100"));
 
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-                .fromAccountNumber("account123")
-                .toAccountNumber("account456")
-                .amount(amount)
-                .build();
+            expectTransferException(transactionRequestDTO, ErrorCode.INVALID_FEE);
+        }
 
-        AccountEntity fromAccount = AccountEntity.builder()
+        /**
+         * 이체 시 이체 한도 초과
+         */
+        @Test
+        void transfer_limitExceeded() {
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+            when(transferPolicy.calculateFee(any(BigDecimal.class))).thenReturn(new BigDecimal("1000"));
+            when(transferPolicy.getTransferDailyLimit()).thenReturn(new BigDecimal("50000"));
+            when(transactionRepository.getTodayTransferTotalFromAccount("account123")).thenReturn(BigDecimal.ZERO);
+
+            expectTransferException(transactionRequestDTO, ErrorCode.TRANSFER_LIMIT_EXCEEDED);
+        }
+
+        /**
+         * 이체 시 잔액 부족
+         */
+        @Test
+        void transfer_insufficientBalance() {
+            AccountEntity poorAccount = AccountEntity.builder()
+                .accountId(UUID.randomUUID())
                 .accountNumber("account123")
-                .balance(new BigDecimal("200000"))
-                .accountStatus(AccountStatus.ACTIVE)
+                .accountName("sender")
+                .bankName("TestBank")
+                .accountType(AccountType.PERSONAL)
                 .currencyType(CurrencyType.KRW)
+                .balance(new BigDecimal("50000"))
+                .accountStatus(AccountStatus.ACTIVE)
                 .build();
 
-        AccountEntity toAccount = AccountEntity.builder()
-                .accountNumber("account456")
-                .balance(new BigDecimal("500"))
-                .accountStatus(AccountStatus.ACTIVE)
-                .currencyType(CurrencyType.KRW)
-                .build();
+            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(poorAccount));
+            when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
+            when(transferPolicy.calculateFee(any(BigDecimal.class))).thenReturn(new BigDecimal("1000"));
+            when(transferPolicy.getTransferDailyLimit()).thenReturn(new BigDecimal("5000000"));
+            when(transactionRepository.getTodayTransferTotalFromAccount("account123")).thenReturn(BigDecimal.ZERO);
 
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccount));
-        when(transferPolicy.calculateFee(amount)).thenReturn(null); // null 수수료
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-                transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.INVALID_FEE, exception.getErrorCode());
+            expectTransferException(transactionRequestDTO, ErrorCode.INSUFFICIENT_BALANCE);
+        }
     }
 
-    /**
-     * 이체 테스트 - 수수료 음수 처리
-     */
-    @Test
-    void transfer_negativeFee_Throw() {
-        BigDecimal amount = new BigDecimal("100000");
+    // ========================= 거래 내역 조회 테스트 =========================
+    @Nested
+    class GetTransactionHistoryTest {
 
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-                .fromAccountNumber("account123")
-                .toAccountNumber("account456")
-                .amount(amount)
-                .build();
+        /**
+         * 거래 내역 조회 성공
+         */
+        @Test
+        void getTransactionHistory_success() {
+            String accountNumber = "account123";
+            List<TransactionEntity> transactions = List.of(transactionEntity);
+            Page<TransactionEntity> transactionPage = new PageImpl<>(transactions, PageRequest.of(0, 10), transactions.size());
 
-        AccountEntity fromAccount = AccountEntity.builder()
-                .accountNumber("account123")
-                .balance(new BigDecimal("200000"))
-                .accountStatus(AccountStatus.ACTIVE)
-                .currencyType(CurrencyType.KRW)
-                .build();
+            when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(fromAccountEntity));
+            when(pagingPolicy.getValidatedPage(0)).thenReturn(0);
+            when(pagingPolicy.getValidatedSize(10)).thenReturn(10);
+            when(pagingPolicy.getTransactionSortField()).thenReturn("createdTimeStamp");
+            when(transactionRepository.findAllByAccount(eq(fromAccountEntity), any(Pageable.class)))
+                    .thenReturn(transactionPage);
 
-        AccountEntity toAccount = AccountEntity.builder()
-                .accountNumber("account456")
-                .balance(new BigDecimal("500"))
-                .accountStatus(AccountStatus.ACTIVE)
-                .currencyType(CurrencyType.KRW)
-                .build();
+            Page<TransactionResponseDTO> result = transactionService.getTransactionHistory(accountNumber, 0, 10);
 
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccount));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccount));
-        when(transferPolicy.calculateFee(amount)).thenReturn(new BigDecimal("-100")); // 음수 수수료
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-                transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.INVALID_FEE, exception.getErrorCode());
-    }
-
-    /**
-     * 이체 테스트 - 이체 한도 초과
-     */
-    @Test
-    void transfer_limitExceeded_Throw() {
-        BigDecimal amount = new BigDecimal("2990000");
-        BigDecimal fee = new BigDecimal("29900");
-
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-                .fromAccountNumber("account123")
-                .toAccountNumber("account456")
-                .amount(amount)
-                .build();
-
-        AccountEntity fromAccountEntity = AccountEntity.builder()
-                .accountNumber("account123")
-                .balance(BigDecimal.valueOf(5000000))
-                .accountStatus(AccountStatus.ACTIVE)
-                .currencyType(CurrencyType.KRW)
-                .build();
-
-        AccountEntity toAccountEntity = AccountEntity.builder()
-                .accountNumber("account456")
-                .balance(BigDecimal.ZERO)
-                .accountStatus(AccountStatus.ACTIVE)
-                .currencyType(CurrencyType.KRW)
-                .build();
-
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
-        when(transferPolicy.calculateFee(amount)).thenReturn(fee);
-        when(transferPolicy.getTransferDailyLimit()).thenReturn(new BigDecimal("3000000"));
-        when(transactionRepository.getTodayTransferTotalFromAccount("account123")).thenReturn(BigDecimal.ZERO);
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-                transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.TRANSFER_LIMIT_EXCEEDED, exception.getErrorCode());
-    }
-
-    /**
-     * 이체 테스트 - 잔액 부족
-     */
-    @Test
-    void transfer_insufficientBalance_Throw() {
-        BigDecimal amount = new BigDecimal("100000");
-        BigDecimal fee = new BigDecimal("1000");
-
-        TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
-                .fromAccountNumber("account123")
-                .toAccountNumber("account456")
-                .amount(amount)
-                .build();
-
-        AccountEntity fromAccountEntity = AccountEntity.builder()
-                .accountNumber("account123")
-                .balance(BigDecimal.valueOf(50000)) // 부족한 잔액
-                .accountStatus(AccountStatus.ACTIVE)
-                .currencyType(CurrencyType.KRW)
-                .build();
-
-        AccountEntity toAccountEntity = AccountEntity.builder()
-                .accountNumber("account456")
-                .balance(BigDecimal.ZERO)
-                .accountStatus(AccountStatus.ACTIVE)
-                .currencyType(CurrencyType.KRW)
-                .build();
-
-        when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(fromAccountEntity));
-        when(accountRepository.findByAccountNumberLock("account456")).thenReturn(Optional.of(toAccountEntity));
-        when(transferPolicy.calculateFee(amount)).thenReturn(fee);
-        when(transferPolicy.getTransferDailyLimit()).thenReturn(new BigDecimal("3000000"));
-        when(transactionRepository.getTodayTransferTotalFromAccount("account123")).thenReturn(BigDecimal.ZERO);
-
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-                transactionService.transfer(transactionRequestDTO));
-
-        assertEquals(ErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode());
-    }
-
-    // ========== 거래 내역 조회 테스트 ==========
-
-    /**
-     * 거래 내역 조회 테스트 - 성공
-     */
-    @Test
-    void getTransactionHistory_success() {
-        // given
-        String accountNumber = "account123";
-        int page = 0;
-        int size = 10;
-
-        AccountEntity account = AccountEntity.builder()
-            .accountNumber(accountNumber)
-            .balance(BigDecimal.valueOf(10000))
-            .build();
-
-        TransactionEntity transaction = TransactionEntity.builder()
-            .transactionId(UUID.randomUUID())
-            .fromAccount(account)
-            .toAccount(null)
-            .transactionType(TransactionType.WITHDRAW)
-            .amount(BigDecimal.valueOf(1000))
-            .fee(BigDecimal.ZERO)
-            .createdTimeStamp(LocalDateTime.now())
-            .build();
-
-        Page<TransactionEntity> transactionPage = new PageImpl<>(
-            List.of(transaction),
-            PageRequest.of(0, 10, Sort.by("createdTimeStamp").descending()),
-            1
-        );
-
-        when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(account));
-        when(pagingPolicy.getValidatedPage(page)).thenReturn(0);
-        when(pagingPolicy.getValidatedSize(size)).thenReturn(10);
-        when(pagingPolicy.getTransactionSortField()).thenReturn("createdTimeStamp");
-        when(transactionRepository.findAllByAccount(eq(account), any(Pageable.class))).thenReturn(transactionPage);
-
-        // when & then
-        assertDoesNotThrow(() -> {
-            Page<TransactionResponseDTO> result = transactionService.getTransactionHistory(accountNumber, page, size);
+            assertNotNull(result);
             assertEquals(1, result.getTotalElements());
-        });
+            verify(transactionRepository).findAllByAccount(eq(fromAccountEntity), any(Pageable.class));
+        }
 
-        verify(accountRepository).findByAccountNumber(accountNumber);
-        verify(pagingPolicy).getValidatedPage(0);
-        verify(pagingPolicy).getValidatedSize(10);
-        verify(transactionRepository).findAllByAccount(eq(account), any(Pageable.class));
-    }
+        /**
+         * 거래 내역 조회 시 null 계좌번호
+         */
+        @Test
+        void getTransactionHistory_nullAccountNumber() {
+            expectHistoryException(null, 0, 10, ErrorCode.INVALID_ACCOUNT_NUMBER);
+        }
 
-    /**
-     * 거래 내역 조회 테스트 - null 계좌번호
-     */
-    @Test
-    void getTransactionHistory_nullAccountNumber_Throw() {
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-                transactionService.getTransactionHistory(null, 0, 10));
+        /**
+         * 거래 내역 조회 시 빈 계좌번호
+         */
+        @Test
+        void getTransactionHistory_emptyAccountNumber() {
+            expectHistoryException("", 0, 10, ErrorCode.INVALID_ACCOUNT_NUMBER);
+        }
 
-        assertEquals(ErrorCode.INVALID_ACCOUNT_NUMBER, exception.getErrorCode());
-    }
+        /**
+         * 거래 내역 조회 시 계좌가 존재하지 않는 경우
+         */
+        @Test
+        void getTransactionHistory_accountNotFound() {
+            when(accountRepository.findByAccountNumber("nonexistent")).thenReturn(Optional.empty());
 
-    /**
-     * 거래 내역 조회 테스트 - 빈 계좌번호
-     */
-    @Test
-    void getTransactionHistory_emptyAccountNumber_Throw() {
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-                transactionService.getTransactionHistory("  ", 0, 10));
+            expectHistoryException("nonexistent", 0, 10, ErrorCode.ACCOUNT_NOT_FOUND);
+        }
 
-        assertEquals(ErrorCode.INVALID_ACCOUNT_NUMBER, exception.getErrorCode());
-    }
+        /**
+         * 거래 내역 조회 시 음수 페이지 처리
+         */
+        @Test
+        void getTransactionHistory_negativePage() {
+            String accountNumber = "account123";
+            List<TransactionEntity> transactions = List.of(transactionEntity);
+            Page<TransactionEntity> transactionPage = new PageImpl<>(transactions, PageRequest.of(0, 10), transactions.size());
 
-    /**
-     * 거래 내역 조회 테스트 - 존재하지 않는 계좌
-     */
-    @Test
-    void getTransactionHistory_accountNotFound_Throw() {
-        String accountNumber = "account123";
+            when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(fromAccountEntity));
+            when(pagingPolicy.getValidatedPage(null)).thenReturn(0); // 음수 페이지는 null로 처리됨
+            when(pagingPolicy.getValidatedSize(10)).thenReturn(10);
+            when(pagingPolicy.getTransactionSortField()).thenReturn("createdTimeStamp");
+            when(transactionRepository.findAllByAccount(eq(fromAccountEntity), any(Pageable.class))).thenReturn(transactionPage);
 
-        when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.empty());
+            Page<TransactionResponseDTO> result = transactionService.getTransactionHistory(accountNumber, -1, 10);
 
-        TransferSystemException exception = assertThrows(TransferSystemException.class, () ->
-                transactionService.getTransactionHistory(accountNumber, 0, 10));
-
-        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND, exception.getErrorCode());
-    }
-
-    /**
-     * 거래 내역 조회 테스트 - 음수 페이지 처리
-     */
-    @Test
-    void getTransactionHistory_negativePage_success() {
-        String accountNumber = "account123";
-        int page = -1; // 음수 페이지
-        int size = 10;
-
-        AccountEntity account = AccountEntity.builder()
-                .accountNumber(accountNumber)
-                .balance(BigDecimal.valueOf(10000))
-                .build();
-
-        Page<TransactionEntity> emptyPage = new PageImpl<>(
-                List.of(),
-                PageRequest.of(0, 10, Sort.by("createdTimeStamp").descending()),
-                0
-        );
-
-        when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(account));
-        when(pagingPolicy.getValidatedPage(null)).thenReturn(0); // 음수는 null로 변환됨
-        when(pagingPolicy.getValidatedSize(size)).thenReturn(10);
-        when(pagingPolicy.getTransactionSortField()).thenReturn("createdTimeStamp");
-        when(transactionRepository.findAllByAccount(eq(account), any(Pageable.class))).thenReturn(emptyPage);
-
-        // when & then
-        assertDoesNotThrow(() -> {
-            Page<TransactionResponseDTO> result = transactionService.getTransactionHistory(accountNumber, page, size);
-            assertEquals(0, result.getTotalElements());
-        });
+            assertNotNull(result);
+            assertEquals(1, result.getTotalElements());
+        }
     }
 }
