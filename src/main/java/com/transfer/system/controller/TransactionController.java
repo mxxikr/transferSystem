@@ -30,8 +30,6 @@ public class TransactionController {
         @RequestParam String accountNumber, @RequestParam int page, @RequestParam int size) {
         Page<TransactionResponseDTO> history = transactionService.getTransactionHistory(accountNumber, page, size);
 
-        return ResponseEntity.ok(
-            CommonResponseDTO.successHasData(history, ResultCode.SUCCESS_HAS_DATA.getMessage())
-        );
+        return ResponseEntity.ok(CommonResponseDTO.successHasData(history, ResultCode.SUCCESS_HAS_DATA.getMessage()));
     }
 }
