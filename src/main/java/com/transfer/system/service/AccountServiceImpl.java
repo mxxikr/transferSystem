@@ -11,6 +11,7 @@ import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
 import com.transfer.system.repository.TransactionRepository;
 import com.transfer.system.enums.TransactionType;
+import com.transfer.system.utils.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -25,6 +26,9 @@ public class AccountServiceImpl implements AccountService {
     private final AccountRepository accountRepository;
     private final TransferPolicy transferPolicy;
     private final TransactionRepository transactionRepository;
+    private final AccountNumberGeneratorService accountNumberGeneratorService;
+
+    private static final String BANK_NAME = "mxxikrBank";
 
     /***
      * 계좌 생성
@@ -36,24 +40,28 @@ public class AccountServiceImpl implements AccountService {
             throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
         }
 
-        if (accountCreateRequestDTO.getAccountNumber() == null || accountCreateRequestDTO.getAccountName() == null ||
-            accountCreateRequestDTO.getBankName() == null || accountCreateRequestDTO.getAccountType() == null ||
-            accountCreateRequestDTO.getCurrencyType() == null || accountCreateRequestDTO.getBalance() == null) {
+        if (accountCreateRequestDTO.getAccountName() == null || accountCreateRequestDTO.getAccountType() == null || accountCreateRequestDTO.getCurrencyType() == null) {
             throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
         }
 
-        if (accountRepository.existsByAccountNumber(accountCreateRequestDTO.getAccountNumber())) {
+        String accountNumber = accountNumberGeneratorService.generateAccountNumber();
+
+        if (accountNumber == null || accountNumber.trim().isEmpty()) {
+            throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
+        }
+
+        if (accountRepository.existsByAccountNumber(accountNumber)) {
             throw new TransferSystemException(ErrorCode.DUPLICATE_ACCOUNT_NUMBER);
         }
 
         AccountEntity accountEntity = AccountEntity.builder()
-            .accountNumber(accountCreateRequestDTO.getAccountNumber())
+            .accountNumber(accountNumber)
             .accountName(accountCreateRequestDTO.getAccountName())
-            .bankName(accountCreateRequestDTO.getBankName())
+            .bankName(BANK_NAME)
             .accountType(accountCreateRequestDTO.getAccountType())
             .currencyType(accountCreateRequestDTO.getCurrencyType())
-            .balance(accountCreateRequestDTO.getBalance())
-            .accountStatus(accountCreateRequestDTO.getAccountStatus() != null ? accountCreateRequestDTO.getAccountStatus() : AccountStatus.ACTIVE)
+            .balance(BigDecimal.ZERO)
+            .accountStatus(AccountStatus.ACTIVE)
             .createdTimeStamp(LocalDateTime.now())
             .updatedTimeStamp(LocalDateTime.now())
             .build();
@@ -122,10 +130,13 @@ public class AccountServiceImpl implements AccountService {
         AccountEntity accountEntity = accountRepository.findByAccountNumberLock(accountNumber)
             .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
 
-        BigDecimal todayTotal = transactionRepository.getTodayWithdrawTotalFromAccount(accountNumber);
-        todayTotal = todayTotal != null ? todayTotal : BigDecimal.ZERO;
+        LocalDateTime startTime = TimeUtils.startOfTodayKst();
+        LocalDateTime endTime   = TimeUtils.endOfTodayKst();
 
-        transferPolicy.validateWithdrawAmount(accountNumber, amount, todayTotal);
+        BigDecimal todayUsed = transactionRepository.getSumTodayUsedAmount(accountNumber, TransactionType.WITHDRAW, startTime, endTime);
+        todayUsed = todayUsed != null ? todayUsed : BigDecimal.ZERO;
+
+        transferPolicy.validateWithdrawAmount(amount, todayUsed);
 
         if (accountEntity.getBalance().compareTo(amount) < 0) {
             throw new TransferSystemException(ErrorCode.INSUFFICIENT_BALANCE);
@@ -141,7 +152,7 @@ public class AccountServiceImpl implements AccountService {
             .transactionType(TransactionType.WITHDRAW)
             .amount(amount)
             .fee(BigDecimal.ZERO)
-            .createdTimeStamp(LocalDateTime.now())
+            .createdTimeStamp(TimeUtils.nowKst())
             .build();
 
         transactionRepository.save(transactionEntity);

@@ -12,6 +12,7 @@ import com.transfer.system.policy.PagingPolicy;
 import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
 import com.transfer.system.repository.TransactionRepository;
+import com.transfer.system.utils.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -47,7 +48,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         String fromAccountNumber = transactionRequestDTO.getFromAccountNumber();
         String toAccountNumber = transactionRequestDTO.getToAccountNumber();
-
+        BigDecimal amount = transactionRequestDTO.getAmount();
 
         if (fromAccountNumber == null || toAccountNumber == null) {
             throw new TransferSystemException(ErrorCode.INVALID_ACCOUNT_NUMBER);
@@ -57,9 +58,16 @@ public class TransactionServiceImpl implements TransactionService {
             throw new TransferSystemException(ErrorCode.TRANSFER_SAME_ACCOUNT);
         }
 
-        AccountEntity firstLock, secondLock;
+        // 이체 금액 유효성 검사
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new TransferSystemException(ErrorCode.INVALID_AMOUNT);
+        }
+
+        log.info("[TransactionService] From: {}, To: {}, Amount: {}", fromAccountNumber, toAccountNumber, amount);
 
         // 락 순서 고정
+        AccountEntity firstLock, secondLock;
+
         if (fromAccountNumber.compareTo(toAccountNumber) < 0) {
             firstLock = accountRepository.findByAccountNumberLock(fromAccountNumber)
                 .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
@@ -75,31 +83,30 @@ public class TransactionServiceImpl implements TransactionService {
         AccountEntity fromAccount = fromAccountNumber.equals(firstLock.getAccountNumber()) ? firstLock : secondLock;
         AccountEntity toAccount = getAccountEntity(fromAccount, firstLock, secondLock);
 
-        // 이체 금액 유효성 검사
-        if (transactionRequestDTO.getAmount() == null || transactionRequestDTO.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new TransferSystemException(ErrorCode.INVALID_AMOUNT);
-        }
-
-        BigDecimal amount = transactionRequestDTO.getAmount();
+        // 이체 수수료 유효성 검사
         BigDecimal fee = transferPolicy.calculateFee(amount); // 이체 수수료 계산
 
-        // 이체 수수료 유효성 검사
         if (fee == null || fee.compareTo(BigDecimal.ZERO) < 0) {
             throw new TransferSystemException(ErrorCode.INVALID_FEE);
         }
 
         BigDecimal total = amount.add(fee); // 총 이쳬 금액
 
-        // 이체 한도 확인
-        BigDecimal todayTotal = transactionRepository.getTodayTransferTotalFromAccount(fromAccountNumber);
-        todayTotal = todayTotal != null ? todayTotal : BigDecimal.ZERO;
 
-        if (todayTotal.add(total).compareTo(transferPolicy.getTransferDailyLimit()) > 0) { // 하루 이체 한도를 초과하는지 확인
-            throw new TransferSystemException(ErrorCode.TRANSFER_LIMIT_EXCEEDED);
-        }
+        log.info("[TransactionService] 수수료 계산 결과 Amount : {}, Fee : {}, Total : {}", amount, fee, total);
+
+        // 이체 한도 확인
+        LocalDateTime startTime = TimeUtils.startOfTodayKst();
+        LocalDateTime endTime = TimeUtils.endOfTodayKst();
+
+        BigDecimal todayUsed = transactionRepository.getSumTodayUsedAmount(fromAccountNumber, TransactionType.TRANSFER, startTime, endTime);
+        todayUsed = todayUsed != null ? todayUsed : BigDecimal.ZERO;
+
+        transferPolicy.validateTransferAmount(amount, todayUsed);
 
         // 잔액 확인
         if (fromAccount.getBalance().compareTo(total) < 0) { // 출금 계좌의 잔액이 이체 금액보다 많아야 함
+            log.warn("[TransactionService] 잔액 부족 Account : {}, 이체 금액 : {}, 총 잔액 : {}", fromAccountNumber, total, fromAccount.getBalance());
             throw new TransferSystemException(ErrorCode.INSUFFICIENT_BALANCE);
         }
 
@@ -114,11 +121,11 @@ public class TransactionServiceImpl implements TransactionService {
                 .transactionType(TransactionType.TRANSFER)
                 .amount(amount)
                 .fee(fee)
-                .createdTimeStamp(LocalDateTime.now())
+                .createdTimeStamp(TimeUtils.nowKst())
                 .build();
 
         TransactionEntity savedTransactionEntity = transactionRepository.save(transactionEntity);
-        log.info("[TranscationService] 이체 완료: 거래ID {}", savedTransactionEntity.getTransactionId());
+        log.info("[TranscationService] 이체 완료 거래ID : {}", savedTransactionEntity.getTransactionId());
 
         return TransactionResponseDTO.from(savedTransactionEntity);
     }
@@ -170,8 +177,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         Page<TransactionEntity> transactions = transactionRepository.findAllByAccount(account, pageable);
 
-        log.info("[TranscationService] 거래 내역 조회 완료: 총 {}건, 현재 페이지 {}건",
-            transactions.getTotalElements(), transactions.getNumberOfElements());
+        log.info("[TranscationService] 거래 내역 조회 완료: 총 {}건, 현재 페이지 {}건", transactions.getTotalElements(), transactions.getNumberOfElements());
 
         return transactions.map(TransactionResponseDTO::from);
     }

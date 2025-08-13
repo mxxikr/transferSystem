@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,30 +42,30 @@ class AccountServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private AccountNumberGeneratorService accountNumberGeneratorService;
+
     private AccountServiceImpl accountService;
 
     private AccountCreateRequestDTO accountCreateRequestDTO;
     private AccountEntity accountEntity;
     private TransactionEntity mockTransaction;
     private final UUID testAccountId = UUID.randomUUID();
+    private final String testAccountNumber = "00125080800001";
 
     @BeforeEach
     void setUp() {
-        accountService = new AccountServiceImpl(accountRepository, transferPolicy, transactionRepository);
+        accountService = new AccountServiceImpl(accountRepository, transferPolicy, transactionRepository, accountNumberGeneratorService);
 
         accountCreateRequestDTO = AccountCreateRequestDTO.builder()
-                .accountNumber("account123")
-                .accountName("mxxikr")
-                .bankName("mxxikrBank")
-                .accountType(AccountType.PERSONAL)
-                .currencyType(CurrencyType.KRW)
-                .balance(new BigDecimal("100000"))
-                .accountStatus(AccountStatus.ACTIVE)
-                .build();
+            .accountName("mxxikr")
+            .accountType(AccountType.PERSONAL)
+            .currencyType(CurrencyType.KRW)
+            .build();
 
         accountEntity = AccountEntity.builder()
                 .accountId(testAccountId)
-                .accountNumber("account123")
+                .accountNumber(testAccountNumber)
                 .accountName("mxxikr")
                 .bankName("mxxikrBank")
                 .accountType(AccountType.PERSONAL)
@@ -112,6 +113,16 @@ class AccountServiceTest {
         assertEquals(expectedError, exception.getErrorCode());
     }
 
+    /**
+     * 오늘 사용 금액
+     */
+    private void todayUsed(String accountNumber, TransactionType type, BigDecimal used) {
+        when(transactionRepository.getSumTodayUsedAmount(
+                eq(accountNumber), eq(type),
+                any(LocalDateTime.class), any(LocalDateTime.class)
+        )).thenReturn(used);
+    }
+
     // ========================= 계좌 생성 테스트 =========================
     @Nested
     class CreateAccountTest {
@@ -121,15 +132,24 @@ class AccountServiceTest {
          */
         @Test
         void createAccount_success() {
-            when(accountRepository.existsByAccountNumber("account123")).thenReturn(false);
+            when(accountNumberGeneratorService.generateAccountNumber()).thenReturn(testAccountNumber);
+            when(accountRepository.existsByAccountNumber(testAccountNumber)).thenReturn(false);
+
             when(accountRepository.save(any(AccountEntity.class))).thenReturn(accountEntity);
 
-            AccountResponseDTO result = accountService.createAccount(accountCreateRequestDTO);
+            accountService.createAccount(accountCreateRequestDTO);
 
-            assertNotNull(result);
-            assertEquals("account123", result.getAccountNumber());
-            assertEquals("mxxikr", result.getAccountName());
-            verify(accountRepository).save(any(AccountEntity.class));
+            ArgumentCaptor<AccountEntity> accountCaptor = ArgumentCaptor.forClass(AccountEntity.class);
+            verify(accountRepository).save(accountCaptor.capture());
+
+            AccountEntity savedAccount = accountCaptor.getValue();
+
+            assertEquals(testAccountNumber, savedAccount.getAccountNumber());
+            assertEquals(accountCreateRequestDTO.getAccountName(), savedAccount.getAccountName());
+            assertEquals(accountCreateRequestDTO.getAccountType(), savedAccount.getAccountType());
+            assertEquals(accountCreateRequestDTO.getCurrencyType(), savedAccount.getCurrencyType());
+            assertEquals(BigDecimal.ZERO, savedAccount.getBalance());
+            assertEquals(AccountStatus.ACTIVE, savedAccount.getAccountStatus());
         }
 
         /**
@@ -146,28 +166,10 @@ class AccountServiceTest {
          */
         @Test
         void createAccount_fail_whenAccountNumberIsDuplicate() {
-            when(accountRepository.existsByAccountNumber("account123")).thenReturn(true);
+            when(accountNumberGeneratorService.generateAccountNumber()).thenReturn(testAccountNumber);
+            when(accountRepository.existsByAccountNumber(testAccountNumber)).thenReturn(true);
 
             expectCreateAccountException(accountCreateRequestDTO, ErrorCode.DUPLICATE_ACCOUNT_NUMBER);
-            verify(accountRepository, never()).save(any());
-        }
-
-        /**
-         * 계좌 생성 실패 - 계좌 번호 누락
-         */
-        @Test
-        void createAccount_fail_whenAccountNumberIsNull() {
-            AccountCreateRequestDTO invalidDto = AccountCreateRequestDTO.builder()
-                    .accountNumber(null)
-                    .accountName("mxxikr")
-                    .bankName("mxxikrBank")
-                    .accountType(AccountType.PERSONAL)
-                    .currencyType(CurrencyType.KRW)
-                    .balance(new BigDecimal("100000"))
-                    .accountStatus(AccountStatus.ACTIVE)
-                    .build();
-
-            expectCreateAccountException(invalidDto, ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
         }
 
@@ -177,33 +179,10 @@ class AccountServiceTest {
         @Test
         void createAccount_fail_whenAccountNameIsNull() {
             AccountCreateRequestDTO invalidDto = AccountCreateRequestDTO.builder()
-                    .accountNumber("account123")
-                    .accountName(null)
-                    .bankName("mxxikrBank")
-                    .accountType(AccountType.PERSONAL)
-                    .currencyType(CurrencyType.KRW)
-                    .balance(new BigDecimal("100000"))
-                    .accountStatus(AccountStatus.ACTIVE)
-                    .build();
-
-            expectCreateAccountException(invalidDto, ErrorCode.INVALID_REQUEST);
-            verify(accountRepository, never()).save(any());
-        }
-
-        /**
-         * 계좌 생성 실패 - 은행명 누락
-         */
-        @Test
-        void createAccount_fail_whenBankNameIsNull() {
-            AccountCreateRequestDTO invalidDto = AccountCreateRequestDTO.builder()
-                    .accountNumber("account123")
-                    .accountName("mxxikr")
-                    .bankName(null)
-                    .accountType(AccountType.PERSONAL)
-                    .currencyType(CurrencyType.KRW)
-                    .balance(new BigDecimal("100000"))
-                    .accountStatus(AccountStatus.ACTIVE)
-                    .build();
+                .accountName(null)
+                .accountType(AccountType.PERSONAL)
+                .currencyType(CurrencyType.KRW)
+                .build();
 
             expectCreateAccountException(invalidDto, ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
@@ -215,14 +194,10 @@ class AccountServiceTest {
         @Test
         void createAccount_fail_whenAccountTypeIsNull() {
             AccountCreateRequestDTO invalidDto = AccountCreateRequestDTO.builder()
-                    .accountNumber("account123")
-                    .accountName("mxxikr")
-                    .bankName("mxxikrBank")
-                    .accountType(null)
-                    .currencyType(CurrencyType.KRW)
-                    .balance(new BigDecimal("100000"))
-                    .accountStatus(AccountStatus.ACTIVE)
-                    .build();
+                .accountName("mxxikr")
+                .accountType(null)
+                .currencyType(CurrencyType.KRW)
+                .build();
 
             expectCreateAccountException(invalidDto, ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
@@ -234,33 +209,10 @@ class AccountServiceTest {
         @Test
         void createAccount_fail_whenCurrencyTypeIsNull() {
             AccountCreateRequestDTO invalidDto = AccountCreateRequestDTO.builder()
-                    .accountNumber("account123")
-                    .accountName("mxxikr")
-                    .bankName("mxxikrBank")
-                    .accountType(AccountType.PERSONAL)
-                    .currencyType(null)
-                    .balance(new BigDecimal("100000"))
-                    .accountStatus(AccountStatus.ACTIVE)
-                    .build();
-
-            expectCreateAccountException(invalidDto, ErrorCode.INVALID_REQUEST);
-            verify(accountRepository, never()).save(any());
-        }
-
-        /**
-         * 계좌 생성 실패 - 잔액 누락
-         */
-        @Test
-        void createAccount_fail_whenBalanceIsNull() {
-            AccountCreateRequestDTO invalidDto = AccountCreateRequestDTO.builder()
-                    .accountNumber("account123")
-                    .accountName("mxxikr")
-                    .bankName("mxxikrBank")
-                    .accountType(AccountType.PERSONAL)
-                    .currencyType(CurrencyType.KRW)
-                    .balance(null)
-                    .accountStatus(AccountStatus.ACTIVE)
-                    .build();
+                .accountName("mxxikr")
+                .accountType(AccountType.PERSONAL)
+                .currencyType(null)
+                .build();
 
             expectCreateAccountException(invalidDto, ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
@@ -282,7 +234,7 @@ class AccountServiceTest {
 
             assertNotNull(result);
             assertEquals(testAccountId, result.getAccountId());
-            assertEquals("account123", result.getAccountNumber());
+            assertEquals(testAccountNumber, result.getAccountNumber());
             verify(accountRepository).findById(testAccountId);
         }
 
@@ -337,13 +289,21 @@ class AccountServiceTest {
          */
         @Test
         void deposit_success() {
-            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(accountEntity));
-            when(transactionRepository.save(any())).thenReturn(mockTransaction);
+            BigDecimal initialBalance = accountEntity.getBalance();
+            BigDecimal depositAmount = new BigDecimal("50000");
 
-            assertDoesNotThrow(() -> accountService.deposit("account123", new BigDecimal("50000")));
+            when(accountRepository.findByAccountNumberLock(testAccountNumber)).thenReturn(Optional.of(accountEntity));
+            when(transactionRepository.save(any(TransactionEntity.class))).thenReturn(mockTransaction);
 
-            verify(accountRepository).save(accountEntity);
+            accountService.deposit(testAccountNumber, depositAmount);
+
+            ArgumentCaptor<AccountEntity> accountCaptor = ArgumentCaptor.forClass(AccountEntity.class);
+
+            verify(accountRepository).save(accountCaptor.capture());
             verify(transactionRepository).save(any(TransactionEntity.class));
+
+            AccountEntity savedAccount = accountCaptor.getValue();
+            assertEquals(initialBalance.add(depositAmount), savedAccount.getBalance());
         }
 
         /**
@@ -373,7 +333,7 @@ class AccountServiceTest {
          */
         @Test
         void deposit_fail_whenAmountIsNull() {
-            expectDepositException("account123", null, ErrorCode.INVALID_REQUEST);
+            expectDepositException(testAccountNumber, null, ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
             verify(transactionRepository, never()).save(any());
         }
@@ -383,7 +343,7 @@ class AccountServiceTest {
          */
         @Test
         void deposit_fail_whenAmountIsNegative() {
-            expectDepositException("account123", new BigDecimal("-1000"), ErrorCode.INVALID_REQUEST);
+            expectDepositException(testAccountNumber, new BigDecimal("-1000"), ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
             verify(transactionRepository, never()).save(any());
         }
@@ -393,7 +353,7 @@ class AccountServiceTest {
          */
         @Test
         void deposit_fail_whenAmountIsZero() {
-            expectDepositException("account123", BigDecimal.ZERO, ErrorCode.INVALID_REQUEST);
+            expectDepositException(testAccountNumber, BigDecimal.ZERO, ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
             verify(transactionRepository, never()).save(any());
         }
@@ -408,24 +368,22 @@ class AccountServiceTest {
          */
         @Test
         void withdraw_success() {
-            TransactionEntity withdrawTransaction = TransactionEntity.builder()
-                    .transactionId(UUID.randomUUID())
-                    .fromAccount(accountEntity)
-                    .transactionType(TransactionType.WITHDRAW)
-                    .amount(new BigDecimal("30000"))
-                    .fee(BigDecimal.ZERO)
-                    .createdTimeStamp(LocalDateTime.now())
-                    .build();
+            BigDecimal initialBalance = accountEntity.getBalance();
+            BigDecimal withdrawAmount = new BigDecimal("30000");
 
-            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(accountEntity));
-            when(transactionRepository.getTodayWithdrawTotalFromAccount("account123")).thenReturn(BigDecimal.ZERO);
-            when(transactionRepository.save(any())).thenReturn(withdrawTransaction);
-            doNothing().when(transferPolicy).validateWithdrawAmount(anyString(), any(BigDecimal.class), any(BigDecimal.class));
+            when(accountRepository.findByAccountNumberLock(testAccountNumber)).thenReturn(Optional.of(accountEntity));
+            todayUsed(testAccountNumber, TransactionType.WITHDRAW, BigDecimal.ZERO);
+            doNothing().when(transferPolicy).validateWithdrawAmount(any(BigDecimal.class), any(BigDecimal.class));
 
-            assertDoesNotThrow(() -> accountService.withdraw("account123", new BigDecimal("30000")));
+            accountService.withdraw(testAccountNumber, withdrawAmount);
 
-            verify(accountRepository).save(accountEntity);
+            ArgumentCaptor<AccountEntity> accountCaptor = ArgumentCaptor.forClass(AccountEntity.class);
+            verify(accountRepository).save(accountCaptor.capture());
             verify(transactionRepository).save(any(TransactionEntity.class));
+
+            AccountEntity savedAccount = accountCaptor.getValue();
+
+            assertEquals(initialBalance.subtract(withdrawAmount), savedAccount.getBalance());
         }
 
         /**
@@ -445,11 +403,11 @@ class AccountServiceTest {
          */
         @Test
         void withdraw_fail_whenInsufficientBalance() {
-            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(accountEntity));
-            when(transactionRepository.getTodayWithdrawTotalFromAccount("account123")).thenReturn(BigDecimal.ZERO);
-            doNothing().when(transferPolicy).validateWithdrawAmount(anyString(), any(BigDecimal.class), any(BigDecimal.class));
+            when(accountRepository.findByAccountNumberLock(testAccountNumber)).thenReturn(Optional.of(accountEntity));
+            todayUsed(testAccountNumber, TransactionType.WITHDRAW, BigDecimal.ZERO);
+            doNothing().when(transferPolicy).validateWithdrawAmount(any(BigDecimal.class), any(BigDecimal.class));
 
-            expectWithdrawException("account123", new BigDecimal("200000"), ErrorCode.INSUFFICIENT_BALANCE);
+            expectWithdrawException(testAccountNumber, new BigDecimal("200000"), ErrorCode.INSUFFICIENT_BALANCE);
             verify(accountRepository, never()).save(any());
             verify(transactionRepository, never()).save(any());
         }
@@ -459,12 +417,16 @@ class AccountServiceTest {
          */
         @Test
         void withdraw_fail_whenExceedsDailyLimit() {
-            when(accountRepository.findByAccountNumberLock("account123")).thenReturn(Optional.of(accountEntity));
-            when(transactionRepository.getTodayWithdrawTotalFromAccount("account123")).thenReturn(new BigDecimal("500000"));
-            doThrow(new TransferSystemException(ErrorCode.EXCEEDS_WITHDRAW_LIMIT))
-                    .when(transferPolicy).validateWithdrawAmount(eq("account123"), eq(new BigDecimal("600000")), eq(new BigDecimal("500000")));
+            BigDecimal withdrawAmount = new BigDecimal("600000");
+            BigDecimal todayTotal = new BigDecimal("500000");
 
-            expectWithdrawException("account123", new BigDecimal("600000"), ErrorCode.EXCEEDS_WITHDRAW_LIMIT);
+            when(accountRepository.findByAccountNumberLock(testAccountNumber)).thenReturn(Optional.of(accountEntity));
+            todayUsed(testAccountNumber, TransactionType.WITHDRAW, todayTotal);
+
+            doThrow(new TransferSystemException(ErrorCode.EXCEEDS_WITHDRAW_LIMIT))
+                    .when(transferPolicy).validateWithdrawAmount(eq(withdrawAmount), eq(todayTotal));
+
+            expectWithdrawException(testAccountNumber, withdrawAmount, ErrorCode.EXCEEDS_WITHDRAW_LIMIT);
             verify(accountRepository, never()).save(any());
             verify(transactionRepository, never()).save(any());
         }
@@ -484,7 +446,7 @@ class AccountServiceTest {
          */
         @Test
         void withdraw_fail_whenAmountIsNull() {
-            expectWithdrawException("account123", null, ErrorCode.INVALID_REQUEST);
+            expectWithdrawException(testAccountNumber, null, ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
             verify(transactionRepository, never()).save(any());
         }
@@ -494,7 +456,7 @@ class AccountServiceTest {
          */
         @Test
         void withdraw_fail_whenAmountIsNegative() {
-            expectWithdrawException("account123", new BigDecimal("-1000"), ErrorCode.INVALID_REQUEST);
+            expectWithdrawException(testAccountNumber, new BigDecimal("-1000"), ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
             verify(transactionRepository, never()).save(any());
         }
@@ -504,7 +466,7 @@ class AccountServiceTest {
          */
         @Test
         void withdraw_fail_whenAmountIsZero() {
-            expectWithdrawException("account123", BigDecimal.ZERO, ErrorCode.INVALID_REQUEST);
+            expectWithdrawException(testAccountNumber, BigDecimal.ZERO, ErrorCode.INVALID_REQUEST);
             verify(accountRepository, never()).save(any());
             verify(transactionRepository, never()).save(any());
         }
