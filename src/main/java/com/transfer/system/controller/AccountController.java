@@ -46,7 +46,6 @@ public class AccountController {
     @Operation(summary = "입금 처리")
     @PostMapping("/deposit")
     public ResponseEntity<CommonResponseDTO<AccountBalanceResponseDTO>> deposit(@Valid @RequestBody AccountBalanceRequestDTO accountBalanceRequestDTO) {
-        accountService.deposit(accountBalanceRequestDTO.getAccountNumber(), accountBalanceRequestDTO.getAmount());
         AccountBalanceResponseDTO response = accountService.deposit(accountBalanceRequestDTO.getAccountNumber(), accountBalanceRequestDTO.getAmount());
 
         return ResponseEntity.ok(CommonResponseDTO.successHasData(response, ResponseMessage.DEPOSIT_SUCCESSFUL.getMessage()));
@@ -55,7 +54,6 @@ public class AccountController {
     @Operation(summary = "출금 처리", description = "일 한도 : 1,000,000원")
     @PostMapping("/withdraw")
     public ResponseEntity<CommonResponseDTO<AccountBalanceResponseDTO>> withdraw(@Valid @RequestBody AccountBalanceRequestDTO accountBalanceRequestDTO) {
-        accountService.withdraw((accountBalanceRequestDTO.getAccountNumber()), accountBalanceRequestDTO.getAmount());
         AccountBalanceResponseDTO response = accountService.withdraw(accountBalanceRequestDTO.getAccountNumber(), accountBalanceRequestDTO.getAmount());
 
         return ResponseEntity.ok(CommonResponseDTO.successHasData(response, ResponseMessage.WITHDRAW_SUCCESSFUL.getMessage()));

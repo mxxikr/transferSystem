@@ -1,6 +1,7 @@
 package com.transfer.system.controller;
 
 import com.transfer.system.dto.AccountBalanceRequestDTO;
+import com.transfer.system.dto.AccountBalanceResponseDTO;
 import com.transfer.system.dto.AccountCreateRequestDTO;
 import com.transfer.system.dto.AccountResponseDTO;
 import com.transfer.system.enums.AccountStatus;
@@ -139,11 +140,11 @@ class AccountControllerTest {
      */
     private void expectBalanceError(String endpoint, AccountBalanceRequestDTO dto, ErrorCode errorCode, HttpStatus status) throws Exception {
         if (endpoint.equals(Endpoint.DEPOSIT)) {
-            doThrow(new TransferSystemException(errorCode))
-                .when(accountService).deposit(anyString(), any(BigDecimal.class));
+            when(accountService.deposit(anyString(), any(BigDecimal.class)))
+                .thenThrow(new TransferSystemException(errorCode));
         } else {
-            doThrow(new TransferSystemException(errorCode))
-                .when(accountService).withdraw(anyString(), any(BigDecimal.class));
+            when(accountService.withdraw(anyString(), any(BigDecimal.class)))
+                .thenThrow(new TransferSystemException(errorCode));
         }
 
         performBalanceRequest(endpoint, dto)
@@ -304,13 +305,22 @@ class AccountControllerTest {
                 .amount(amount)
                 .build();
 
-            doNothing().when(accountService).deposit(testAccountNumber, amount);
+            AccountBalanceResponseDTO responseDTO = AccountBalanceResponseDTO.builder()
+                .accountNumber(testAccountNumber)
+                .amount(amount)
+                .balance(new BigDecimal("150000"))
+                .build();
+
+            when(accountService.deposit(eq(testAccountNumber), eq(amount))).thenReturn(responseDTO);
 
             performBalanceRequest(Endpoint.DEPOSIT, requestDTO)
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_NO_DATA.getCode()))
-                .andExpect(jsonPath("$.message").value(ResponseMessage.DEPOSIT_SUCCESSFUL.getMessage()));
+                .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_HAS_DATA.getCode()))
+                .andExpect(jsonPath("$.message").value(ResponseMessage.DEPOSIT_SUCCESSFUL.getMessage()))
+                .andExpect(jsonPath("$.data.accountNumber").value(testAccountNumber))
+                .andExpect(jsonPath("$.data.amount").value(50000))
+                .andExpect(jsonPath("$.data.balance").value(150000));
 
             verify(accountService).deposit(testAccountNumber, amount);
         }
@@ -326,13 +336,22 @@ class AccountControllerTest {
                 .amount(amount)
                 .build();
 
-            doNothing().when(accountService).withdraw(testAccountNumber, amount);
+            AccountBalanceResponseDTO responseDTO = AccountBalanceResponseDTO.builder()
+                .accountNumber(testAccountNumber)
+                .amount(amount)
+                .balance(new BigDecimal("70000"))
+                .build();
+
+            when(accountService.withdraw(eq(testAccountNumber), eq(amount))).thenReturn(responseDTO);
 
             performBalanceRequest(Endpoint.WITHDRAW, requestDTO)
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_NO_DATA.getCode()))
-                .andExpect(jsonPath("$.message").value(ResponseMessage.WITHDRAW_SUCCESSFUL.getMessage()));
+                .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_HAS_DATA.getCode()))
+                .andExpect(jsonPath("$.message").value(ResponseMessage.WITHDRAW_SUCCESSFUL.getMessage()))
+                .andExpect(jsonPath("$.data.accountNumber").value(testAccountNumber))
+                .andExpect(jsonPath("$.data.amount").value(30000))
+                .andExpect(jsonPath("$.data.balance").value(70000));
 
             verify(accountService).withdraw(testAccountNumber, amount);
         }
