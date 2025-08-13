@@ -31,7 +31,7 @@ public class AccountEntity {
     @Column(nullable = false, unique = true)
     private String accountNumber; // 계좌 번호
 
-    private String accountName; // 계좌 이름
+    private String accountName; // 계좌 사용자명
 
     private String bankName; // 은행 이름
 

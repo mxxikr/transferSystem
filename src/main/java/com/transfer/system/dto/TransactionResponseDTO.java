@@ -1,5 +1,6 @@
 package com.transfer.system.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.transfer.system.domain.TransactionEntity;
 import com.transfer.system.enums.TransactionType;
 import lombok.Builder;
@@ -11,6 +12,7 @@ import java.util.UUID;
 
 @Getter
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TransactionResponseDTO {
     private UUID transactionId;
     private String fromAccountNumber;
