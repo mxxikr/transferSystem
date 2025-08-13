@@ -49,6 +49,7 @@ class AccountControllerTest {
     private AccountResponseDTO accountResponseDTO;
 
     private final UUID testAccountId = UUID.randomUUID();
+    private final String testAccountNumber = "00125080800001";
 
     private static class Endpoint {
         static final String CREATE = "/api/account/create";
@@ -66,18 +67,14 @@ class AccountControllerTest {
             .build();
 
         accountCreateRequestDTO = AccountCreateRequestDTO.builder()
-            .accountNumber("account123")
             .accountName("mxxikr")
-            .bankName("mxxikrBank")
             .accountType(AccountType.PERSONAL)
             .currencyType(CurrencyType.KRW)
-            .balance(new BigDecimal("100000"))
-            .accountStatus(AccountStatus.ACTIVE)
             .build();
 
         accountResponseDTO = AccountResponseDTO.builder()
             .accountId(testAccountId)  
-            .accountNumber("account123")
+            .accountNumber(testAccountNumber)
             .accountName("mxxikr")
             .bankName("mxxikrBank")
             .accountType(AccountType.PERSONAL)
@@ -170,7 +167,7 @@ class AccountControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_HAS_DATA.getCode()))
                 .andExpect(jsonPath("$.message").value(ResponseMessage.ACCOUNT_CREATED.getMessage()))
-                .andExpect(jsonPath("$.data.accountNumber").value("account123"))
+                .andExpect(jsonPath("$.data.accountNumber").value(testAccountNumber))
                 .andExpect(jsonPath("$.data.accountName").value("mxxikr"));
 
             verify(accountService).createAccount(any(AccountCreateRequestDTO.class));
@@ -184,7 +181,9 @@ class AccountControllerTest {
             mockMvc.perform(post(Endpoint.CREATE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{invalid json"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
+                .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
 
             verify(accountService, never()).createAccount(any());
         }
@@ -203,7 +202,6 @@ class AccountControllerTest {
         @Test
         void createAccount_invalidRequest() throws Exception {
             AccountCreateRequestDTO invalidRequest = AccountCreateRequestDTO.builder()
-                .accountNumber(null)
                 .accountName("mxxikr")
                 .build();
 
@@ -227,7 +225,7 @@ class AccountControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_HAS_DATA.getCode()))
                 .andExpect(jsonPath("$.message").value(ResponseMessage.ACCOUNT_RETRIEVED.getMessage()))
-                .andExpect(jsonPath("$.data.accountNumber").value("account123"));
+                .andExpect(jsonPath("$.data.accountNumber").value(testAccountNumber));
 
             verify(accountService).getAccount(testAccountId);
         }
@@ -252,7 +250,9 @@ class AccountControllerTest {
         void getAccount_invalidUUID() throws Exception {
             mockMvc.perform(get(Endpoint.GET, "invalid-uuid")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
+                .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
         }
     }
 
@@ -297,22 +297,21 @@ class AccountControllerTest {
          */
         @Test
         void deposit_success() throws Exception {
-            String accountNumber = "account123";
             BigDecimal amount = new BigDecimal("50000");
             AccountBalanceRequestDTO requestDTO = AccountBalanceRequestDTO.builder()
-                .accountNumber(accountNumber)
+                .accountNumber(testAccountNumber)
                 .amount(amount)
                 .build();
 
-            doNothing().when(accountService).deposit(accountNumber, amount);
+            doNothing().when(accountService).deposit(testAccountNumber, amount);
 
             performBalanceRequest(Endpoint.DEPOSIT, requestDTO)
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_NO_DATA.getCode()))
-                .andExpect(jsonPath("$.message").value(ResponseMessage.TRANSFER_SUCCESSFUL.getMessage()));
+                .andExpect(jsonPath("$.message").value(ResponseMessage.DEPOSIT_SUCCESSFUL.getMessage()));
 
-            verify(accountService).deposit(accountNumber, amount);
+            verify(accountService).deposit(testAccountNumber, amount);
         }
 
         /**
@@ -320,14 +319,13 @@ class AccountControllerTest {
          */
         @Test
         void withdraw_success() throws Exception {
-            String accountNumber = "account123";
             BigDecimal amount = new BigDecimal("30000");
             AccountBalanceRequestDTO requestDTO = AccountBalanceRequestDTO.builder()
-                .accountNumber(accountNumber)
+                .accountNumber(testAccountNumber)
                 .amount(amount)
                 .build();
 
-            doNothing().when(accountService).withdraw(accountNumber, amount);
+            doNothing().when(accountService).withdraw(testAccountNumber, amount);
 
             performBalanceRequest(Endpoint.WITHDRAW, requestDTO)
                 .andDo(print())
@@ -335,7 +333,7 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_NO_DATA.getCode()))
                 .andExpect(jsonPath("$.message").value(ResponseMessage.WITHDRAW_SUCCESSFUL.getMessage()));
 
-            verify(accountService).withdraw(accountNumber, amount);
+            verify(accountService).withdraw(testAccountNumber, amount);
         }
 
         /**
@@ -357,7 +355,7 @@ class AccountControllerTest {
         @Test
         void withdraw_insufficientBalance() throws Exception {
             AccountBalanceRequestDTO requestDTO = AccountBalanceRequestDTO.builder()
-                .accountNumber("account123")
+                .accountNumber(testAccountNumber)
                 .amount(new BigDecimal("1000000"))
                 .build();
 

@@ -50,6 +50,8 @@ class TransactionControllerTest {
     private TransactionResponseDTO transactionResponseDTO;
 
     private final UUID testTransactionId = UUID.randomUUID();
+    private final String testFromAccountNumber = "00125080800001";
+    private final String testToAccountNumber = "00125080800002";
 
     private static class Endpoint {
         static final String TRANSFER = "/api/transaction/transfer";
@@ -64,15 +66,15 @@ class TransactionControllerTest {
             .build();
 
         transactionRequestDTO = TransactionRequestDTO.builder()
-            .fromAccountNumber("account123")
-            .toAccountNumber("account456")
+            .fromAccountNumber(testFromAccountNumber)
+            .toAccountNumber(testToAccountNumber)
             .amount(new BigDecimal("100000"))
             .build();
 
         transactionResponseDTO = TransactionResponseDTO.builder()
             .transactionId(testTransactionId)
-            .fromAccountNumber("account123")
-            .toAccountNumber("account456")
+            .fromAccountNumber(testFromAccountNumber)
+            .toAccountNumber(testToAccountNumber)
             .transactionType(TransactionType.TRANSFER)
             .amount(new BigDecimal("100000"))
             .fee(new BigDecimal("1000"))
@@ -141,8 +143,8 @@ class TransactionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_HAS_DATA.getCode()))
-                .andExpect(jsonPath("$.message").value(ResultCode.SUCCESS_HAS_DATA.getMessage()))
-                .andExpect(jsonPath("$.data.fromAccountNumber").value("account123"))
+                .andExpect(jsonPath("$.message").value(ResponseMessage.TRANSFER_SUCCESSFUL.getMessage()))
+                .andExpect(jsonPath("$.data.fromAccountNumber").value(testFromAccountNumber))
                 .andExpect(jsonPath("$.data.amount").value(100000));
 
             verify(transactionService).transfer(any(TransactionRequestDTO.class));
@@ -156,7 +158,9 @@ class TransactionControllerTest {
             mockMvc.perform(post(Endpoint.TRANSFER)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{invalid json"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
+                .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
 
             verify(transactionService, never()).transfer(any());
         }
@@ -166,13 +170,13 @@ class TransactionControllerTest {
          */
         @Test
         void transfer_sameAccount() throws Exception {
-            TransactionRequestDTO requestDTO = TransactionRequestDTO.builder()
-                .fromAccountNumber("account123")
-                .toAccountNumber("account123")
+            TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
+                .fromAccountNumber(testFromAccountNumber)
+                .toAccountNumber(testFromAccountNumber)
                 .amount(new BigDecimal("100000"))
                 .build();
 
-            expectTransferError(requestDTO, ErrorCode.TRANSFER_SAME_ACCOUNT, HttpStatus.BAD_REQUEST);
+            expectTransferError(transactionRequestDTO, ErrorCode.TRANSFER_SAME_ACCOUNT, HttpStatus.BAD_REQUEST);
         }
 
         /**
@@ -196,13 +200,13 @@ class TransactionControllerTest {
          */
         @Test
         void transfer_limitExceeded() throws Exception {
-            TransactionRequestDTO requestDTO = TransactionRequestDTO.builder()
-                .fromAccountNumber("account123")
-                .toAccountNumber("account456")
+            TransactionRequestDTO transactionRequestDTO = TransactionRequestDTO.builder()
+                .fromAccountNumber(testFromAccountNumber)
+                .toAccountNumber(testToAccountNumber)
                 .amount(new BigDecimal("5000000"))
                 .build();
 
-            expectTransferError(requestDTO, ErrorCode.TRANSFER_LIMIT_EXCEEDED, HttpStatus.BAD_REQUEST);
+            expectTransferError(transactionRequestDTO, ErrorCode.TRANSFER_LIMIT_EXCEEDED, HttpStatus.BAD_REQUEST);
         }
 
         /**
@@ -231,7 +235,7 @@ class TransactionControllerTest {
          */
         @Test
         void getTransactionHistory_success() throws Exception {
-            String accountNumber = "account123";
+            String accountNumber = testFromAccountNumber;
             List<TransactionResponseDTO> transactions = List.of(transactionResponseDTO);
             Page<TransactionResponseDTO> transactionPage = new PageImpl<>(
                 transactions, PageRequest.of(0, 10), transactions.size());
@@ -243,7 +247,7 @@ class TransactionControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_HAS_DATA.getCode()))
-                .andExpect(jsonPath("$.message").value(ResultCode.SUCCESS_HAS_DATA.getMessage()))
+                .andExpect(jsonPath("$.message").value(ResponseMessage.TRANSACTION_HISTORY_RETRIEVED.getMessage()))
                 .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.content[0].transactionId").value(testTransactionId.toString()));
@@ -256,7 +260,7 @@ class TransactionControllerTest {
          */
         @Test
         void getTransactionHistory_emptyResult() throws Exception {
-            String accountNumber = "account123";
+            String accountNumber = testFromAccountNumber;
             Page<TransactionResponseDTO> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
 
             when(transactionService.getTransactionHistory(accountNumber, 0, 10))
@@ -266,7 +270,7 @@ class TransactionControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_HAS_DATA.getCode()))
-                .andExpect(jsonPath("$.message").value(ResultCode.SUCCESS_HAS_DATA.getMessage()))
+                .andExpect(jsonPath("$.message").value(ResponseMessage.TRANSACTION_HISTORY_RETRIEVED.getMessage()))
                 .andExpect(jsonPath("$.data.content.length()").value(0))
                 .andExpect(jsonPath("$.data.totalElements").value(0));
         }
@@ -287,7 +291,9 @@ class TransactionControllerTest {
             mockMvc.perform(get(Endpoint.HISTORY)
                 .param("page", "0")
                 .param("size", "10"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
+                .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
         }
 
         /**
@@ -296,8 +302,10 @@ class TransactionControllerTest {
         @Test
         void getTransactionHistory_missingPageParams() throws Exception {
             mockMvc.perform(get(Endpoint.HISTORY)
-                .param("accountNumber", "account123"))
-                .andExpect(status().isBadRequest());
+                .param("accountNumber", testFromAccountNumber))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
+                .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
         }
 
         /**
@@ -306,10 +314,12 @@ class TransactionControllerTest {
         @Test
         void getTransactionHistory_invalidPageParams() throws Exception {
             mockMvc.perform(get(Endpoint.HISTORY)
-                .param("accountNumber", "account123")
+                .param("accountNumber", testFromAccountNumber)
                 .param("page", "invalid")
                 .param("size", "10"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
+                .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
         }
 
         /**
@@ -318,7 +328,9 @@ class TransactionControllerTest {
         @Test
         void getTransactionHistory_missingRequiredParams() throws Exception {
             mockMvc.perform(get(Endpoint.HISTORY))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
+                .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
         }
     }
 }

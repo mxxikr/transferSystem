@@ -16,11 +16,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class AccountCreateRequestDTO {
-    private String accountNumber;
-    private String accountName;
-    private String bankName;
-    private AccountType accountType;
-    private CurrencyType currencyType;
-    private BigDecimal balance;
-    private AccountStatus accountStatus;
+    private String accountName; // 계좌 이름
+    private AccountType accountType; // 계좌 유형
+    private CurrencyType currencyType; // 통화 유형
 }

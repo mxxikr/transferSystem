@@ -18,6 +18,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "account_entity")
 public class AccountEntity {
     @Id
     @GeneratedValue(generator = "uuid2")
@@ -35,6 +36,7 @@ public class AccountEntity {
     @Enumerated(EnumType.STRING)
     private AccountType accountType; // 계좌 유형
 
+    @Enumerated(EnumType.STRING)
     private CurrencyType currencyType; // 통화 종류
 
     @Column(nullable = false)

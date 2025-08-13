@@ -27,16 +27,16 @@ public class AccountResponseDTO {
 
     public static AccountResponseDTO from(AccountEntity entity) {
         return AccountResponseDTO.builder()
-                .accountId(entity.getAccountId())
-                .accountNumber(entity.getAccountNumber())
-                .accountName(entity.getAccountName())
-                .bankName(entity.getBankName())
-                .accountType(entity.getAccountType())
-                .currencyType(entity.getCurrencyType())
-                .balance(entity.getBalance())
-                .accountStatus(entity.getAccountStatus())
-                .createdTimeStamp(entity.getCreatedTimeStamp())
-                .updatedTimeStamp(entity.getUpdatedTimeStamp())
-                .build();
+            .accountId(entity.getAccountId())
+            .accountNumber(entity.getAccountNumber())
+            .accountName(entity.getAccountName())
+            .bankName(entity.getBankName())
+            .accountType(entity.getAccountType())
+            .currencyType(entity.getCurrencyType())
+            .balance(entity.getBalance())
+            .accountStatus(entity.getAccountStatus())
+            .createdTimeStamp(entity.getCreatedTimeStamp())
+            .updatedTimeStamp(entity.getUpdatedTimeStamp())
+            .build();
     }
 }
