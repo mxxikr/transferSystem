@@ -3,7 +3,6 @@ package com.transfer.system.service;
 import com.transfer.system.dto.TransactionRequestDTO;
 import com.transfer.system.dto.TransactionResponseDTO;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 
 public interface TransactionService {
