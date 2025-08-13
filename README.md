@@ -14,7 +14,7 @@
   - H2 Database (테스트용)
   - Flyway (데이터베이스 마이그레이션)
 - Build Tool
-  - Gradle 8.5
+  - Gradle 8.14.3
 - Infrastructure
   - Docker, Docker Compose
 - API Documentation
