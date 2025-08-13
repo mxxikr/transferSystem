@@ -35,11 +35,20 @@ public class TransferPolicy {
     }
 
     /**
-     * 이체 금액 검증
+     * 출금 금액 검증
      */
-    public void validateWithdrawAmount(String accountNumber, BigDecimal amount, BigDecimal todayWithdrawTotal) {
+    public void validateWithdrawAmount(BigDecimal amount, BigDecimal todayWithdrawTotal) {
         if (todayWithdrawTotal.add(amount).compareTo(withdrawDailyLimit) > 0) {
             throw new TransferSystemException(ErrorCode.EXCEEDS_WITHDRAW_LIMIT);
+        }
+    }
+
+    /**
+     * 이체 금액 검증
+     */
+    public void validateTransferAmount(BigDecimal amount, BigDecimal todayTransferTotal) {
+        if (todayTransferTotal.add(amount).compareTo(transferDailyLimit) > 0) {
+            throw new TransferSystemException(ErrorCode.TRANSFER_LIMIT_EXCEEDED);
         }
     }
 }
