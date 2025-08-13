@@ -8,7 +8,7 @@ import com.transfer.system.exception.TransferSystemException;
 import com.transfer.system.utils.TimeUtils;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,8 +22,7 @@ import java.util.UUID;
 @Table(name = "account_entity")
 public class AccountEntity {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    @UuidGenerator
     @Column(columnDefinition = "BINARY(16)")
     private UUID accountId; // 계좌 고유 식별자
 
