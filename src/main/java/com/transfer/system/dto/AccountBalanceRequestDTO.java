@@ -12,6 +12,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class AccountBalanceRequestDTO {
-    private String accountNumber;
-    private BigDecimal amount;
+    private String accountNumber; // 계좌 번호
+    private BigDecimal amount; // 잔액
 }
