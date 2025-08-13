@@ -2,6 +2,7 @@ package com.transfer.system.service;
 
 import com.transfer.system.domain.AccountEntity;
 import com.transfer.system.domain.TransactionEntity;
+import com.transfer.system.dto.AccountBalanceResponseDTO;
 import com.transfer.system.dto.AccountCreateRequestDTO;
 import com.transfer.system.dto.AccountResponseDTO;
 import com.transfer.system.enums.AccountStatus;
@@ -103,7 +104,7 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public void deposit(String accountNumber, BigDecimal amount) {
+    public AccountBalanceResponseDTO deposit(String accountNumber, BigDecimal amount) {
         if (accountNumber == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
         }
@@ -124,6 +125,12 @@ public class AccountServiceImpl implements AccountService {
             .build();
 
         transactionRepository.save(transactionEntity);
+
+        return AccountBalanceResponseDTO.builder()
+            .accountNumber(accountEntity.getAccountNumber())
+            .amount(amount)
+            .balance(accountEntity.getBalance())
+            .build();
     }
 
     /**
@@ -131,7 +138,7 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public void withdraw(String accountNumber, BigDecimal amount) {
+    public AccountBalanceResponseDTO withdraw(String accountNumber, BigDecimal amount) {
         if (accountNumber == null || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
         }
@@ -165,5 +172,11 @@ public class AccountServiceImpl implements AccountService {
             .build();
 
         transactionRepository.save(transactionEntity);
+
+        return AccountBalanceResponseDTO.builder()
+            .accountNumber(accountEntity.getAccountNumber())
+            .amount(amount)
+            .balance(accountEntity.getBalance())
+            .build();
     }
 }

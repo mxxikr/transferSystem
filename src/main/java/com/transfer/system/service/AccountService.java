@@ -1,5 +1,6 @@
 package com.transfer.system.service;
 
+import com.transfer.system.dto.AccountBalanceResponseDTO;
 import com.transfer.system.dto.AccountCreateRequestDTO;
 import com.transfer.system.dto.AccountResponseDTO;
 
@@ -14,7 +15,7 @@ public interface AccountService {
 
     void deleteAccount(UUID id);
 
-    void deposit(String accountNumber, BigDecimal amount);
+    AccountBalanceResponseDTO deposit(String accountNumber, BigDecimal amount);
 
-    void withdraw(String accountNumber, BigDecimal amount);
+    AccountBalanceResponseDTO withdraw(String accountNumber, BigDecimal amount);
 }
