@@ -2,7 +2,8 @@
 ### 프로젝트 개요
 - 본 프로젝트는 Spring Boot와 JPA를 사용하여 계좌 간 송금 시스템의 핵심 기능을 구현한 백엔드 API 서버입니다.
 - RESTful API를 통해 계좌 관리, 입출금, 이체, 거래 내역 조회 기능을 제공하며 Docker Compose를 사용하여 실행 환경을 구축할 수 있습니다.
-  
+
+<br>
 
 ## 기술 스택
 - Backend
@@ -18,7 +19,8 @@
   - Docker, Docker Compose
 - API Documentation
   - Swagger
-  
+
+<br>
 
 ## 주요 기능
 
@@ -35,7 +37,8 @@
   - 특정 계좌의 거래 내역을 최신 순으로 페이징 조회
 - Swagger 이용한 API 명세 자동화
 - 단위 테스트 및 통합 테스트
-  
+
+<br>
 
 ## 실행 방법
 
@@ -57,7 +60,8 @@
 3. 서버 실행 확인 및 Swagger UI 접속
 
     - http://localhost:8080/swagger-ui.html
-  
+
+<br>
 
 ## API 문서
 
@@ -358,7 +362,8 @@
     "timestamp": "2025-08-13T15:00:42.729606369"
   }
   ```
-  
+
+<br>
 
 ## 상태 및 오류 코드
 
@@ -459,7 +464,8 @@
     "timestamp": "2025-08-13T14:39:39.767059197"
   }
   ```
-  
+
+<br>
 
 ## 시스템 정책 및 제약 사항
 
@@ -477,7 +483,8 @@
   * 기본 페이지 크기: 10
   * 최대 페이지 크기: 100
   * 거래 정렬 필드: `createdTimeStamp`
-  
+
+<br>
 
 ## 사용 라이브러리
 - spring-boot-starter-web
