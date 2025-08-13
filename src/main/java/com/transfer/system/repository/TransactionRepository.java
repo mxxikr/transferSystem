@@ -2,6 +2,7 @@ package com.transfer.system.repository;
 
 import com.transfer.system.domain.AccountEntity;
 import com.transfer.system.domain.TransactionEntity;
+import com.transfer.system.enums.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<TransactionEntity, UUID> {
@@ -22,25 +24,13 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
     """)
     Page<TransactionEntity> findAllByAccount(@Param("account") AccountEntity account, Pageable pageable); // 특정 계좌의 모든 거래 내역 조회
 
-    // 일일 이체 총액 조회
-    @Query("""
-        SELECT COALESCE(SUM(t.amount + t.fee), 0)
-        FROM TransactionEntity t
-        WHERE t.fromAccount.accountNumber = :accountNumber
-            AND t.transactionType = 'TRANSFER'
-            AND t.createdTimeStamp >= CURRENT_DATE
-            AND t.createdTimeStamp < CURRENT_DATE + 1
-    """)
-    BigDecimal getTodayTransferTotalFromAccount(@Param("accountNumber") String accountNumber);
-
-    // 일일 출금 총액 조회
+    // 일일 한도 계산용 조회
     @Query("""
         SELECT COALESCE(SUM(t.amount), 0)
         FROM TransactionEntity t
         WHERE t.fromAccount.accountNumber = :accountNumber
-            AND t.transactionType = 'WITHDRAW'
-            AND t.createdTimeStamp >= CURRENT_DATE
-            AND t.createdTimeStamp < CURRENT_DATE + 1
+          AND t.transactionType = :type
+          AND t.createdTimeStamp BETWEEN :startTime AND :endTime
     """)
-    BigDecimal getTodayWithdrawTotalFromAccount(@Param("accountNumber") String accountNumber);
+    BigDecimal getSumTodayUsedAmount(@Param("accountNumber") String accountNumber, @Param("type") TransactionType type, @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 }
