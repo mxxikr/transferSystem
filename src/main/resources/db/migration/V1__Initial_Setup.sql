@@ -19,7 +19,6 @@ CREATE TABLE account_entity (
 );
 
 CREATE UNIQUE INDEX ux_account_entity_account_number ON account_entity (account_number);
-CREATE INDEX idx_account_entity_created ON account_entity (created_time_stamp);
 
 -- 거래 정보 테이블
 CREATE TABLE transaction_entity (
@@ -37,4 +36,3 @@ CREATE TABLE transaction_entity (
 CREATE INDEX idx_tx_from_created ON transaction_entity (from_account_id, created_time_stamp);
 CREATE INDEX idx_tx_to_created ON transaction_entity (to_account_id, created_time_stamp);
 CREATE INDEX idx_tx_from_type_created ON transaction_entity (from_account_id, transaction_type, created_time_stamp);
-CREATE INDEX idx_tx_to_type_created ON transaction_entity (to_account_id, transaction_type, created_time_stamp);
