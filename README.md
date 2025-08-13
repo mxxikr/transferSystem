@@ -51,13 +51,13 @@
     cd {directory_name}
   ```
    
-4. 다음 명령어로 컨테이너 실행
+3. 다음 명령어로 컨테이너 실행
 
     ```bash
     docker compose up --build
     ```
 
-3. 서버 실행 확인 및 Swagger UI 접속
+4. 서버 실행 확인 및 Swagger UI 접속
 
     - http://localhost:8080/swagger-ui.html
 

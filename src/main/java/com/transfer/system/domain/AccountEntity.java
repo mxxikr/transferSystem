@@ -58,13 +58,13 @@ public class AccountEntity {
             throw new TransferSystemException(ErrorCode.INSUFFICIENT_BALANCE);
         }
         this.balance = this.balance.subtract(amount);
-        this.updatedTimeStamp = TimeUtils.nowKst();;
+        this.updatedTimeStamp = TimeUtils.nowKst();
     }
 
     // 입금
     public void addBalance(BigDecimal amount) {
         this.balance = this.balance.add(amount);
-        this.updatedTimeStamp = TimeUtils.nowKst();;
+        this.updatedTimeStamp = TimeUtils.nowKst();
     }
 
     // 계좌 잔액 업데이트
@@ -73,12 +73,6 @@ public class AccountEntity {
             throw new TransferSystemException(ErrorCode.NEGATIVE_BALANCE);
         }
         this.balance = newBalance;
-        this.updatedTimeStamp = TimeUtils.nowKst();;
-    }
-
-    // 계좌 활성화
-    public void inactivate() {
-        this.accountStatus = AccountStatus.INACTIVE;
         this.updatedTimeStamp = TimeUtils.nowKst();
     }
 }

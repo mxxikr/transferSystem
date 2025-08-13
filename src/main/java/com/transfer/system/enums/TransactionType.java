@@ -1,5 +1,8 @@
 package com.transfer.system.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum TransactionType {
     DEPOSIT("입금"),
     WITHDRAW("출금"),
@@ -9,9 +12,5 @@ public enum TransactionType {
 
     TransactionType(String label) {
         this.label = label;
-    }
-
-    public String getLabel() {
-        return label;
     }
 }

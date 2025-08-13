@@ -95,22 +95,6 @@ class AccountRepositoryTest {
         return entityManager.persistAndFlush(accountEntity);
     }
 
-    /**
-     * 특정 상태의 계좌를 데이터베이스에 저장
-     */
-    private AccountEntity saveAccountWithStatus(String accountNumber, String accountName, BigDecimal balance, AccountStatus status) {
-        AccountEntity accountEntity = createTestAccountWithStatus(accountNumber, accountName, balance, status);
-        return entityManager.persistAndFlush(accountEntity);
-    }
-
-    /**
-     * 특정 통화의 계좌를 데이터베이스에 저장
-     */
-    private AccountEntity saveAccountWithCurrency(String accountNumber, String accountName, BigDecimal balance, CurrencyType currency) {
-        AccountEntity accountEntity = createTestAccountWithCurrency(accountNumber, accountName, balance, currency);
-        return entityManager.persistAndFlush(accountEntity);
-    }
-
     // ==================== Repository 메서드 테스트 ====================
     @Nested
     class AccountRepositoryMethodTest {
