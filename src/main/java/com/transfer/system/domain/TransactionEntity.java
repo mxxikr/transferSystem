@@ -39,8 +39,10 @@ public class TransactionEntity {
     @NotNull
     private TransactionType transactionType; // 거래 유형
 
-    @Column(nullable = false)
+    @Column(precision = 19, scale = 2, nullable = false)
     private BigDecimal amount; // 전송 금액
+
+    @Column(precision = 19, scale = 2)
     private BigDecimal fee; // 수수료
 
     private LocalDateTime createdTimeStamp; // 거래 생성 일시

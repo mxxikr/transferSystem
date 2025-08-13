@@ -13,6 +13,7 @@ import com.transfer.system.exception.TransferSystemException;
 import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
 import com.transfer.system.repository.TransactionRepository;
+import com.transfer.system.utils.TimeUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -80,7 +81,7 @@ class AccountServiceTest {
                 .transactionType(TransactionType.DEPOSIT)
                 .amount(new BigDecimal("50000"))
                 .fee(BigDecimal.ZERO)
-                .createdTimeStamp(LocalDateTime.now())
+                .createdTimeStamp(TimeUtils.nowKst())
                 .build();
     }
 

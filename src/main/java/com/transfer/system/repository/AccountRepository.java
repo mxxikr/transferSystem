@@ -18,9 +18,9 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-        SELECT a
-        FROM AccountEntity a
-        WHERE a.accountNumber = :accountNumber
+        SELECT ae
+        FROM AccountEntity ae
+        WHERE ae.accountNumber = :accountNumber
     """)
     Optional<AccountEntity> findByAccountNumberLock(@Param("accountNumber") String accountNumber);
 }

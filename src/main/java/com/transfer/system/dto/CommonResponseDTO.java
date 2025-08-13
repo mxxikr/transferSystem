@@ -2,6 +2,7 @@ package com.transfer.system.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.transfer.system.enums.ResultCode;
+import com.transfer.system.utils.TimeUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -26,7 +27,7 @@ public class CommonResponseDTO<T> {
                 ResultCode.SUCCESS_HAS_DATA.getCode(),
                 data,
                 message,
-                LocalDateTime.now()
+                TimeUtils.nowKst()
         );
     }
 
@@ -35,7 +36,7 @@ public class CommonResponseDTO<T> {
                 ResultCode.SUCCESS_NO_DATA.getCode(),
                 null,
                 message,
-                LocalDateTime.now()
+                TimeUtils.nowKst()
         );
     }
 
@@ -44,7 +45,7 @@ public class CommonResponseDTO<T> {
                 resultCode.getCode(),
                 null,
                 resultCode.getMessage(),
-                LocalDateTime.now()
+                TimeUtils.nowKst()
         );
     }
 
@@ -53,7 +54,7 @@ public class CommonResponseDTO<T> {
                 resultCode.getCode(),
                 null,
                 customMessage,
-                LocalDateTime.now()
+                TimeUtils.nowKst()
         );
     }
 }

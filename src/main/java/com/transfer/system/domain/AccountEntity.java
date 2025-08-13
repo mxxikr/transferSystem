@@ -5,7 +5,9 @@ import com.transfer.system.enums.AccountType;
 import com.transfer.system.enums.CurrencyType;
 import com.transfer.system.exception.ErrorCode;
 import com.transfer.system.exception.TransferSystemException;
+import com.transfer.system.utils.TimeUtils;
 import jakarta.persistence.*;
+import java.math.RoundingMode;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
@@ -39,7 +41,7 @@ public class AccountEntity {
     @Enumerated(EnumType.STRING)
     private CurrencyType currencyType; // 통화 종류
 
-    @Column(nullable = false)
+    @Column(precision = 19, scale = 2, nullable = false)
     private BigDecimal balance; // 계좌 잔액
 
     @Enumerated(EnumType.STRING)
@@ -56,13 +58,13 @@ public class AccountEntity {
             throw new TransferSystemException(ErrorCode.INSUFFICIENT_BALANCE);
         }
         this.balance = this.balance.subtract(amount);
-        this.updatedTimeStamp = LocalDateTime.now();
+        this.updatedTimeStamp = TimeUtils.nowKst();;
     }
 
     // 입금
     public void addBalance(BigDecimal amount) {
         this.balance = this.balance.add(amount);
-        this.updatedTimeStamp = LocalDateTime.now();
+        this.updatedTimeStamp = TimeUtils.nowKst();;
     }
 
     // 계좌 잔액 업데이트
@@ -71,6 +73,12 @@ public class AccountEntity {
             throw new TransferSystemException(ErrorCode.NEGATIVE_BALANCE);
         }
         this.balance = newBalance;
-        this.updatedTimeStamp = LocalDateTime.now();
+        this.updatedTimeStamp = TimeUtils.nowKst();;
+    }
+
+    // 계좌 활성화
+    public void inactivate() {
+        this.accountStatus = AccountStatus.INACTIVE;
+        this.updatedTimeStamp = TimeUtils.nowKst();
     }
 }

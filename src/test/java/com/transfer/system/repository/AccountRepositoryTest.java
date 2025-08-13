@@ -5,6 +5,7 @@ import com.transfer.system.domain.AccountEntity;
 import com.transfer.system.enums.AccountStatus;
 import com.transfer.system.enums.AccountType;
 import com.transfer.system.enums.CurrencyType;
+import com.transfer.system.utils.TimeUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,7 +51,7 @@ class AccountRepositoryTest {
             .currencyType(CurrencyType.KRW)
             .balance(balance)
             .accountStatus(AccountStatus.ACTIVE)
-            .createdTimeStamp(LocalDateTime.now())
+            .createdTimeStamp(TimeUtils.nowKst())
             .build();
     }
 
@@ -66,7 +67,7 @@ class AccountRepositoryTest {
             .currencyType(CurrencyType.KRW)
             .balance(balance)
             .accountStatus(status)
-            .createdTimeStamp(LocalDateTime.now())
+            .createdTimeStamp(TimeUtils.nowKst())
             .build();
     }
 
@@ -82,7 +83,7 @@ class AccountRepositoryTest {
                 .currencyType(currency)
                 .balance(balance)
                 .accountStatus(AccountStatus.ACTIVE)
-                .createdTimeStamp(LocalDateTime.now())
+                .createdTimeStamp(TimeUtils.nowKst())
                 .build();
     }
 

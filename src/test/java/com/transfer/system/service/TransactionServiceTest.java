@@ -15,6 +15,7 @@ import com.transfer.system.policy.PagingPolicy;
 import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
 import com.transfer.system.repository.TransactionRepository;
+import com.transfer.system.utils.TimeUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -102,7 +103,7 @@ class TransactionServiceTest {
             .transactionType(TransactionType.TRANSFER)
             .amount(new BigDecimal("100000"))
             .fee(new BigDecimal("1000"))
-            .createdTimeStamp(LocalDateTime.now())
+            .createdTimeStamp(TimeUtils.nowKst())
             .build();
     }
 

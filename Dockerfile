@@ -1,11 +1,12 @@
 # 빌드 스테이지
 FROM eclipse-temurin:21-jdk AS builder
-
 WORKDIR /app
 
-# Gradle 설정 복사
-COPY build.gradle settings.gradle gradlew ./
+# 권한 부여 및 설정 복사
+COPY gradlew ./
 COPY gradle ./gradle
+RUN chmod +x gradlew
+COPY build.gradle settings.gradle gradlew ./
 
 # 의존성 캐시
 RUN ./gradlew dependencies --no-daemon || true

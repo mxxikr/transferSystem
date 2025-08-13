@@ -26,11 +26,19 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
     // 일일 한도 계산용 조회
     @Query("""
-        SELECT COALESCE(SUM(t.amount), 0)
-        FROM TransactionEntity t
-        WHERE t.fromAccount.accountNumber = :accountNumber
-          AND t.transactionType = :type
-          AND t.createdTimeStamp BETWEEN :startTime AND :endTime
+        SELECT COALESCE(SUM(te.amount), 0)
+        FROM TransactionEntity te
+        WHERE te.fromAccount.accountNumber = :accountNumber
+          AND te.transactionType = :type
+          AND te.createdTimeStamp BETWEEN :startTime AND :endTime
     """)
     BigDecimal getSumTodayUsedAmount(@Param("accountNumber") String accountNumber, @Param("type") TransactionType type, @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
+
+    // 계좌 삭제 전 거래 존재 여부
+    @Query("""
+      SELECT CASE WHEN COUNT(te) > 0 THEN true ELSE false END
+      FROM TransactionEntity te
+      WHERE te.fromAccount = :accountEntity OR te.toAccount = :accountEntity
+    """)
+    boolean existsByFromOrTo(@Param("accountEntity") AccountEntity accountEntity);
 }

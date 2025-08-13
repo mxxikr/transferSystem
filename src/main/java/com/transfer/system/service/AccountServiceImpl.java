@@ -62,8 +62,8 @@ public class AccountServiceImpl implements AccountService {
             .currencyType(accountCreateRequestDTO.getCurrencyType())
             .balance(BigDecimal.ZERO)
             .accountStatus(AccountStatus.ACTIVE)
-            .createdTimeStamp(LocalDateTime.now())
-            .updatedTimeStamp(LocalDateTime.now())
+            .createdTimeStamp(TimeUtils.nowKst())
+            .updatedTimeStamp(TimeUtils.nowKst())
             .build();
 
         return AccountResponseDTO.from(accountRepository.save(accountEntity));
@@ -86,6 +86,15 @@ public class AccountServiceImpl implements AccountService {
     public void deleteAccount(UUID id) {
         AccountEntity accountEntity = accountRepository.findById(id)
             .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        boolean hasTransaction = transactionRepository.existsByFromOrTo(accountEntity);
+
+        // 거래 내역이 있고 계좌 상태가 ACTIVE인 경우 삭제 불가
+        if (hasTransaction && accountEntity.getAccountStatus() == AccountStatus.ACTIVE) {
+            throw new TransferSystemException(ErrorCode.ACCOUNT_HAS_TRANSACTIONS);
+        }
+
+        // 거래 없으면 실제 삭제 허용
         accountRepository.delete(accountEntity);
     }
 
@@ -111,7 +120,7 @@ public class AccountServiceImpl implements AccountService {
             .transactionType(TransactionType.DEPOSIT)
             .amount(amount)
             .fee(BigDecimal.ZERO)
-            .createdTimeStamp(LocalDateTime.now())
+            .createdTimeStamp(TimeUtils.nowKst())
             .build();
 
         transactionRepository.save(transactionEntity);

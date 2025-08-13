@@ -33,7 +33,7 @@ public class AccountResponseDTO {
             .bankName(entity.getBankName())
             .accountType(entity.getAccountType())
             .currencyType(entity.getCurrencyType())
-            .balance(entity.getBalance())
+            .balance(entity.getBalance() != null ? entity.getBalance() : BigDecimal.ZERO)
             .accountStatus(entity.getAccountStatus())
             .createdTimeStamp(entity.getCreatedTimeStamp())
             .updatedTimeStamp(entity.getUpdatedTimeStamp())

@@ -66,22 +66,16 @@ public class TransactionServiceImpl implements TransactionService {
         log.info("[TransactionService] From: {}, To: {}, Amount: {}", fromAccountNumber, toAccountNumber, amount);
 
         // 락 순서 고정
-        AccountEntity firstLock, secondLock;
+        String firstAccountNumber = fromAccountNumber.compareTo(toAccountNumber) <= 0 ? fromAccountNumber : toAccountNumber;
+        String secondAccountNumber = fromAccountNumber.compareTo(toAccountNumber) <= 0 ? toAccountNumber : fromAccountNumber;
 
-        if (fromAccountNumber.compareTo(toAccountNumber) < 0) {
-            firstLock = accountRepository.findByAccountNumberLock(fromAccountNumber)
-                .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
-            secondLock = accountRepository.findByAccountNumberLock(toAccountNumber)
-                .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
-        } else {
-            firstLock = accountRepository.findByAccountNumberLock(toAccountNumber)
-                .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
-            secondLock = accountRepository.findByAccountNumberLock(fromAccountNumber)
-                .orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
-        }
-        
-        AccountEntity fromAccount = fromAccountNumber.equals(firstLock.getAccountNumber()) ? firstLock : secondLock;
-        AccountEntity toAccount = getAccountEntity(fromAccount, firstLock, secondLock);
+        // 비관적 락
+        AccountEntity firstLock = accountRepository.findByAccountNumberLock(firstAccountNumber).orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
+        AccountEntity secondLock = accountRepository.findByAccountNumberLock(secondAccountNumber).orElseThrow(() -> new TransferSystemException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        // 송신 계좌 기준 매핑
+        AccountEntity fromAccount = firstAccountNumber.equals(fromAccountNumber) ? firstLock : secondLock;
+        AccountEntity toAccount   = getAccountEntity(fromAccount, firstLock, secondLock);
 
         // 이체 수수료 유효성 검사
         BigDecimal fee = transferPolicy.calculateFee(amount); // 이체 수수료 계산

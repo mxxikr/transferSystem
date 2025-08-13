@@ -13,6 +13,7 @@ import com.transfer.system.exception.GlobalExceptionHandler;
 import com.transfer.system.exception.TransferSystemException;
 import com.transfer.system.service.AccountService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.transfer.system.utils.TimeUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -81,7 +82,7 @@ class AccountControllerTest {
             .currencyType(CurrencyType.KRW)
             .balance(new BigDecimal("100000"))
             .accountStatus(AccountStatus.ACTIVE)
-            .createdTimeStamp(LocalDateTime.now())
+            .createdTimeStamp(TimeUtils.nowKst())
             .build();
     }
 

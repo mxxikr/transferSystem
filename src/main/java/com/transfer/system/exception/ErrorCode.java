@@ -10,6 +10,7 @@ public enum ErrorCode {
     DUPLICATE_ACCOUNT_NUMBER("이미 존재하는 계좌 번호입니다.", HttpStatus.CONFLICT),
     TRANSFER_SAME_ACCOUNT("같은 계좌로 이체할 수 없습니다.", HttpStatus.BAD_REQUEST),
     EXCEEDS_WITHDRAW_LIMIT("출금 한도를 초과했습니다.", HttpStatus.BAD_REQUEST),
+    ACCOUNT_HAS_TRANSACTIONS("해당 계좌에 거래 이력이 있어 삭제할 수 없습니다.", HttpStatus.BAD_REQUEST),
 
     // TRANSACTION
     INSUFFICIENT_BALANCE("잔액이 부족합니다.", HttpStatus.BAD_REQUEST),
