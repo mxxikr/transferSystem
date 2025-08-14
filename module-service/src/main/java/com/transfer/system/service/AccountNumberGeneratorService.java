@@ -4,6 +4,7 @@ import com.transfer.system.domain.AccountNumberEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 
 import static com.transfer.system.utils.TimeUtils.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountNumberGeneratorService {
@@ -22,19 +24,25 @@ public class AccountNumberGeneratorService {
 
     @Transactional
     public String generateAccountNumber() {
+        LocalDate today = nowKstLocalDate();
         // 날짜 기준으로 시퀀스 엔티티를 가져오거나 생성
-        AccountNumberEntity seq = entityManager.find(AccountNumberEntity.class, nowKstLocalDate(), LockModeType.PESSIMISTIC_WRITE);
+        AccountNumberEntity seq = entityManager.find(AccountNumberEntity.class, today, LockModeType.PESSIMISTIC_WRITE);
 
         if (seq == null) {
             seq = new AccountNumberEntity();
-            seq.setId(nowKstLocalDate());
+            seq.setId(today);
             seq.setLastNumber(1L);
             entityManager.persist(seq);
+            log.debug("[AccountNumber] 신규 시퀀스 생성 date: {}, lastNumber: {}", today, seq.getLastNumber());
         } else {
             seq.setLastNumber(seq.getLastNumber() + 1);
+            log.debug("[AccountNumber] 시퀀스 증가 date: {}, lastNumber: {}", today, seq.getLastNumber());
         }
 
-        return format(nowKstLocalDate(), seq.getLastNumber());
+        String accountNumber = format(today, seq.getLastNumber());
+        log.debug("[AccountNumber] 생성된 계좌 번호: {}", accountNumber);
+
+        return accountNumber;
     }
 
     private String format(LocalDate date, Long value) {

@@ -53,8 +53,10 @@ public class AccountServiceImpl implements AccountService {
         if (accountNumber == null || accountNumber.trim().isEmpty()) {
             throw new TransferSystemException(ErrorCode.INVALID_REQUEST);
         }
+        log.debug("[AccountService] 생성된 계좌번호: {}", accountNumber);
 
         if (accountRepository.existsByAccountNumber(accountNumber)) {
+            log.warn("[AccountService] 중복 계좌 번호 감지: {}", accountNumber);
             throw new TransferSystemException(ErrorCode.DUPLICATE_ACCOUNT_NUMBER);
         }
 
@@ -70,7 +72,10 @@ public class AccountServiceImpl implements AccountService {
             .updatedTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
 
-        return toDto(accountRepository.save(accountEntity));
+        AccountEntity savedAccountEntity = accountRepository.save(accountEntity);
+        log.debug("[AccountService] 계좌 생성 완료 id: {}, number: {}", savedAccountEntity.getAccountId(), savedAccountEntity.getAccountNumber());
+
+        return toDto(savedAccountEntity);
     }
 
     /**
@@ -95,6 +100,7 @@ public class AccountServiceImpl implements AccountService {
 
         // 거래 내역이 있고 계좌 상태가 ACTIVE인 경우 삭제 불가
         if (hasTransaction && accountEntity.getAccountStatus() == AccountStatus.ACTIVE) {
+            log.warn("[AccountService] 거래 이력 존재로 삭제 불가 accountId: {}, status: {}", id, accountEntity.getAccountStatus());
             throw new TransferSystemException(ErrorCode.ACCOUNT_HAS_TRANSACTIONS);
         }
 
@@ -127,7 +133,8 @@ public class AccountServiceImpl implements AccountService {
             .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
 
-        transactionRepository.save(transactionEntity);
+        TransactionEntity savedTransactionEntity = transactionRepository.save(transactionEntity);
+        log.debug("[AccountService] 입금 완료 transactionId: {}, accountNumber: {}", savedTransactionEntity.getTransactionId(), accountNumber);
 
         return AccountBalanceResponseDTO.builder()
             .accountNumber(accountEntity.getAccountNumber())
@@ -158,6 +165,7 @@ public class AccountServiceImpl implements AccountService {
         transferPolicy.validateWithdrawAmount(amount, todayUsed);
 
         if (accountEntity.getBalance().compareTo(amount) < 0) {
+            log.warn("[AccountService] 잔액 부족 accountNumber: {}, request: {}, balance: {}", accountNumber, amount, accountEntity.getBalance());
             throw new TransferSystemException(ErrorCode.INSUFFICIENT_BALANCE);
         }
 
@@ -174,7 +182,8 @@ public class AccountServiceImpl implements AccountService {
             .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
 
-        transactionRepository.save(transactionEntity);
+        TransactionEntity savedTransactionEntity = transactionRepository.save(transactionEntity);
+        log.debug("[AccountService] 출금 완료 transactionId: {}, accountNumber: {}", savedTransactionEntity.getTransactionId(), accountNumber);
 
         return AccountBalanceResponseDTO.builder()
             .accountNumber(accountEntity.getAccountNumber())
