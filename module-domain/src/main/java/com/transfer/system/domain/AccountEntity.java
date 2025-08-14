@@ -9,7 +9,6 @@ import com.transfer.system.utils.MoneyUtils;
 import com.transfer.system.utils.TimeUtils;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -57,13 +56,13 @@ public class AccountEntity {
             throw new TransferSystemException(ErrorCode.INSUFFICIENT_BALANCE);
         }
         this.balance = MoneyUtils.normalize(this.balance.subtract(amount));
-        this.updatedTimeStamp = TimeUtils.nowKst();
+        this.updatedTimeStamp = TimeUtils.nowKstLocalDateTime();
     }
 
     // 입금
     public void addBalance(BigDecimal amount) {
         this.balance = MoneyUtils.normalize(this.balance.add(amount));
-        this.updatedTimeStamp = TimeUtils.nowKst();
+        this.updatedTimeStamp = TimeUtils.nowKstLocalDateTime();
     }
 
     // 계좌 잔액 업데이트
@@ -72,6 +71,6 @@ public class AccountEntity {
             throw new TransferSystemException(ErrorCode.NEGATIVE_BALANCE);
         }
         this.balance = MoneyUtils.normalize(newBalance);
-        this.updatedTimeStamp = TimeUtils.nowKst();
+        this.updatedTimeStamp = TimeUtils.nowKstLocalDateTime();
     }
 }

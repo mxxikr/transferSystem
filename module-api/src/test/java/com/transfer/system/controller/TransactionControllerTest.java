@@ -11,7 +11,6 @@ import com.transfer.system.exception.TransferSystemException;
 import com.transfer.system.service.TransactionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transfer.system.utils.TimeUtils;
-import com.transfer.system.controller.TransactionController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -79,7 +78,7 @@ class TransactionControllerTest {
             .transactionType(TransactionType.TRANSFER)
             .amount(new BigDecimal("100000"))
             .fee(new BigDecimal("1000"))
-            .createdTimeStamp(TimeUtils.nowKst())
+            .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
     }
 

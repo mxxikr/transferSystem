@@ -1,5 +1,6 @@
 package com.transfer.system.utils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public final class TimeUtils {
@@ -7,10 +8,17 @@ public final class TimeUtils {
     private TimeUtils(){}
 
     /**
-     * 현재 시간을 KST로 반환
+     * 현재 시간을 LocalDateTime KST로 반환
      */
-    public static LocalDateTime nowKst() {
+    public static LocalDateTime nowKstLocalDateTime() {
         return java.time.ZonedDateTime.now(KST).toLocalDateTime();
+    }
+
+    /**
+     * 현재 시간을 LocalDate KST로 반환
+     */
+    public static LocalDate nowKstLocalDate() {
+        return java.time.ZonedDateTime.now(KST).toLocalDate();
     }
 
     /**

@@ -49,7 +49,7 @@ class AccountRepositoryTest {
             .currencyType(CurrencyType.KRW)
             .balance(balance)
             .accountStatus(AccountStatus.ACTIVE)
-            .createdTimeStamp(TimeUtils.nowKst())
+            .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
     }
 
@@ -65,7 +65,7 @@ class AccountRepositoryTest {
             .currencyType(CurrencyType.KRW)
             .balance(balance)
             .accountStatus(status)
-            .createdTimeStamp(TimeUtils.nowKst())
+            .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
     }
 
@@ -81,7 +81,7 @@ class AccountRepositoryTest {
                 .currencyType(currency)
                 .balance(balance)
                 .accountStatus(AccountStatus.ACTIVE)
-                .createdTimeStamp(TimeUtils.nowKst())
+                .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
                 .build();
     }
 

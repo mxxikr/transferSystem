@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+import static com.transfer.system.utils.TimeUtils.*;
+
 @Service
 @RequiredArgsConstructor
 public class AccountNumberGeneratorService {
@@ -20,21 +22,19 @@ public class AccountNumberGeneratorService {
 
     @Transactional
     public String generateAccountNumber() {
-        LocalDate today = LocalDate.now();
-
         // 날짜 기준으로 시퀀스 엔티티를 가져오거나 생성
-        AccountNumberEntity seq = entityManager.find(AccountNumberEntity.class, today, LockModeType.PESSIMISTIC_WRITE);
+        AccountNumberEntity seq = entityManager.find(AccountNumberEntity.class, nowKstLocalDate(), LockModeType.PESSIMISTIC_WRITE);
 
         if (seq == null) {
             seq = new AccountNumberEntity();
-            seq.setId(today);
+            seq.setId(nowKstLocalDate());
             seq.setLastNumber(1L);
             entityManager.persist(seq);
         } else {
             seq.setLastNumber(seq.getLastNumber() + 1);
         }
 
-        return format(today, seq.getLastNumber());
+        return format(nowKstLocalDate(), seq.getLastNumber());
     }
 
     private String format(LocalDate date, Long value) {

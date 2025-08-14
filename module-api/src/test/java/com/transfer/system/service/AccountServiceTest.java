@@ -82,7 +82,7 @@ class AccountServiceTest {
                 .transactionType(TransactionType.DEPOSIT)
                 .amount(new BigDecimal("50000"))
                 .fee(BigDecimal.ZERO)
-                .createdTimeStamp(TimeUtils.nowKst())
+                .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
                 .build();
     }
 

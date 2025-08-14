@@ -82,7 +82,7 @@ class AccountControllerTest {
             .currencyType(CurrencyType.KRW)
             .balance(new BigDecimal("100000"))
             .accountStatus(AccountStatus.ACTIVE)
-            .createdTimeStamp(TimeUtils.nowKst())
+            .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
     }
 

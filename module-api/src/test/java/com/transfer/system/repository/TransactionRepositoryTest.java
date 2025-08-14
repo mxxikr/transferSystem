@@ -52,7 +52,7 @@ class TransactionRepositoryTest {
             .currencyType(CurrencyType.KRW)
             .balance(balance)
             .accountStatus(AccountStatus.ACTIVE)
-            .createdTimeStamp(TimeUtils.nowKst())
+            .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
         return entityManager.persistAndFlush(accountEntity);
     }
@@ -76,12 +76,12 @@ class TransactionRepositoryTest {
      * 오늘 시작/끝 범위
      */
     private LocalDateTime startOfToday() {
-        LocalDateTime now = TimeUtils.nowKst();
+        LocalDateTime now = TimeUtils.nowKstLocalDateTime();
         return now.withHour(0).withMinute(0).withSecond(0).withNano(0);
     }
 
     private LocalDateTime endOfToday() {
-        LocalDateTime now = TimeUtils.nowKst();
+        LocalDateTime now = TimeUtils.nowKstLocalDateTime();
         return now.withHour(23).withMinute(59).withSecond(59).withNano(999_999_999);
     }
 
@@ -97,7 +97,7 @@ class TransactionRepositoryTest {
             AccountEntity fromAccount = testAccountEntity(testFromAccountNumber, "sender", new BigDecimal("100000"));
             AccountEntity toAccount = testAccountEntity(testToAccountNumber, "reciever", new BigDecimal("50000"));
 
-            TransactionEntity saved = testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("500"), TimeUtils.nowKst());
+            TransactionEntity saved = testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("500"), TimeUtils.nowKstLocalDateTime());
 
             Optional<TransactionEntity> found = transactionRepository.findById(saved.getTransactionId());
 
@@ -124,7 +124,7 @@ class TransactionRepositoryTest {
         void delete_transaction() {
             AccountEntity fromAccount = testAccountEntity(testFromAccountNumber, "sender", new BigDecimal("100000"));
             AccountEntity toAccount = testAccountEntity(testToAccountNumber, "reciever", new BigDecimal("50000"));
-            TransactionEntity saved = testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("500"), TimeUtils.nowKst());
+            TransactionEntity saved = testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("500"), TimeUtils.nowKstLocalDateTime());
 
             transactionRepository.delete(saved);
             entityManager.flush();
@@ -146,9 +146,9 @@ class TransactionRepositoryTest {
             AccountEntity a2 = testAccountEntity(testToAccountNumber, "mxxikr2", new BigDecimal("50000"));
             AccountEntity a3 = testAccountEntity("00125080800003", "mxxikr3", new BigDecimal("70000"));
 
-            testTransactionEntity(a1, a2, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("100"), TimeUtils.nowKst());
-            testTransactionEntity(a3, a1, TransactionType.TRANSFER, new BigDecimal("20000"), new BigDecimal("100"), TimeUtils.nowKst());
-            testTransactionEntity(a2, a3, TransactionType.TRANSFER, new BigDecimal("5000"),  new BigDecimal("100"), TimeUtils.nowKst());
+            testTransactionEntity(a1, a2, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("100"), TimeUtils.nowKstLocalDateTime());
+            testTransactionEntity(a3, a1, TransactionType.TRANSFER, new BigDecimal("20000"), new BigDecimal("100"), TimeUtils.nowKstLocalDateTime());
+            testTransactionEntity(a2, a3, TransactionType.TRANSFER, new BigDecimal("5000"),  new BigDecimal("100"), TimeUtils.nowKstLocalDateTime());
 
             Pageable pageable = PageRequest.of(0, 10);
             Page<TransactionEntity> page = transactionRepository.findAllByAccount(a1, pageable);
@@ -170,7 +170,7 @@ class TransactionRepositoryTest {
             AccountEntity a2 = testAccountEntity(testToAccountNumber, "a2", new BigDecimal("50000"));
             AccountEntity empty = testAccountEntity("EMPTY", "empty", new BigDecimal("100000"));
 
-            testTransactionEntity(a1, a2, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("0"), TimeUtils.nowKst());
+            testTransactionEntity(a1, a2, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("0"), TimeUtils.nowKstLocalDateTime());
 
             Page<TransactionEntity> page = transactionRepository.findAllByAccount(empty, PageRequest.of(0, 10));
             assertThat(page.getTotalElements()).isZero();
@@ -186,7 +186,7 @@ class TransactionRepositoryTest {
             AccountEntity toAccount = testAccountEntity(testToAccountNumber, "reciever", new BigDecimal("50000"));
 
             for (int i = 0; i < 12; i++) {
-                testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("1000"), BigDecimal.ZERO, TimeUtils.nowKst());
+                testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("1000"), BigDecimal.ZERO, TimeUtils.nowKstLocalDateTime());
             }
 
             Page<TransactionEntity> page = transactionRepository.findAllByAccount(fromAccount, PageRequest.of(0, 5));
@@ -208,11 +208,11 @@ class TransactionRepositoryTest {
             AccountEntity toAccount = testAccountEntity(testToAccountNumber, "reciever", new BigDecimal("50000"));
 
             // 오늘 거래
-            testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("500"), TimeUtils.nowKst());
-            testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("20000"), new BigDecimal("1000"), TimeUtils.nowKst());
+            testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("10000"), new BigDecimal("500"), TimeUtils.nowKstLocalDateTime());
+            testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("20000"), new BigDecimal("1000"), TimeUtils.nowKstLocalDateTime());
 
             // 어제 거래
-            testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("99999"), BigDecimal.ZERO, TimeUtils.nowKst().minusDays(1));
+            testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("99999"), BigDecimal.ZERO, TimeUtils.nowKstLocalDateTime().minusDays(1));
 
             BigDecimal total = transactionRepository.getSumTodayUsedAmount(
                     testFromAccountNumber, TransactionType.TRANSFER, startOfToday(), endOfToday());
@@ -227,8 +227,8 @@ class TransactionRepositoryTest {
         void sumTodayUsed_withdraw() {
             AccountEntity fromAccount = testAccountEntity(testFromAccountNumber, "sender", new BigDecimal("500000"));
 
-            testTransactionEntity(fromAccount, null, TransactionType.WITHDRAW, new BigDecimal("10000"), BigDecimal.ZERO, TimeUtils.nowKst());
-            testTransactionEntity(fromAccount, null, TransactionType.WITHDRAW, new BigDecimal("20000"), BigDecimal.ZERO, TimeUtils.nowKst());
+            testTransactionEntity(fromAccount, null, TransactionType.WITHDRAW, new BigDecimal("10000"), BigDecimal.ZERO, TimeUtils.nowKstLocalDateTime());
+            testTransactionEntity(fromAccount, null, TransactionType.WITHDRAW, new BigDecimal("20000"), BigDecimal.ZERO, TimeUtils.nowKstLocalDateTime());
 
             BigDecimal total = transactionRepository.getSumTodayUsedAmount(testFromAccountNumber, TransactionType.WITHDRAW, startOfToday(), endOfToday());
 
@@ -254,8 +254,8 @@ class TransactionRepositoryTest {
             AccountEntity toAccount = testAccountEntity(testToAccountNumber, "reciever", new BigDecimal("50000"));
 
             // TRANSFER 1건 + WITHDRAW 1건
-            testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("7000"), BigDecimal.ZERO, TimeUtils.nowKst());
-            testTransactionEntity(fromAccount, null, TransactionType.WITHDRAW, new BigDecimal("9000"), BigDecimal.ZERO, TimeUtils.nowKst());
+            testTransactionEntity(fromAccount, toAccount, TransactionType.TRANSFER, new BigDecimal("7000"), BigDecimal.ZERO, TimeUtils.nowKstLocalDateTime());
+            testTransactionEntity(fromAccount, null, TransactionType.WITHDRAW, new BigDecimal("9000"), BigDecimal.ZERO, TimeUtils.nowKstLocalDateTime());
 
             BigDecimal transferTotal = transactionRepository.getSumTodayUsedAmount(testFromAccountNumber, TransactionType.TRANSFER, startOfToday(), endOfToday());
 
@@ -281,7 +281,7 @@ class TransactionRepositoryTest {
                 .transactionType(TransactionType.TRANSFER)
                 .amount(null)
                 .fee(new BigDecimal("10"))
-                .createdTimeStamp(TimeUtils.nowKst())
+                .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
                 .build();
 
             assertThatThrownBy(() -> {
@@ -304,7 +304,7 @@ class TransactionRepositoryTest {
                 .transactionType(null)
                 .amount(new BigDecimal("1000"))
                 .fee(BigDecimal.ZERO)
-                .createdTimeStamp(TimeUtils.nowKst())
+                .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
                 .build();
 
             assertThatThrownBy(() -> {

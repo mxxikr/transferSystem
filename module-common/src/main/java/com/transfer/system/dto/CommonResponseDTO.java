@@ -27,7 +27,7 @@ public class CommonResponseDTO<T> {
                 ResultCode.SUCCESS_HAS_DATA.getCode(),
                 data,
                 message,
-                TimeUtils.nowKst()
+                TimeUtils.nowKstLocalDateTime()
         );
     }
 
@@ -36,7 +36,7 @@ public class CommonResponseDTO<T> {
                 ResultCode.SUCCESS_NO_DATA.getCode(),
                 null,
                 message,
-                TimeUtils.nowKst()
+                TimeUtils.nowKstLocalDateTime()
         );
     }
 
@@ -45,7 +45,7 @@ public class CommonResponseDTO<T> {
                 resultCode.getCode(),
                 null,
                 resultCode.getMessage(),
-                TimeUtils.nowKst()
+                TimeUtils.nowKstLocalDateTime()
         );
     }
 
@@ -54,7 +54,7 @@ public class CommonResponseDTO<T> {
                 resultCode.getCode(),
                 null,
                 customMessage,
-                TimeUtils.nowKst()
+                TimeUtils.nowKstLocalDateTime()
         );
     }
 }

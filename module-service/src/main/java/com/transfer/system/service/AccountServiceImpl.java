@@ -66,8 +66,8 @@ public class AccountServiceImpl implements AccountService {
             .currencyType(accountCreateRequestDTO.getCurrencyType())
             .balance(MoneyUtils.normalize(BigDecimal.ZERO))
             .accountStatus(AccountStatus.ACTIVE)
-            .createdTimeStamp(TimeUtils.nowKst())
-            .updatedTimeStamp(TimeUtils.nowKst())
+            .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
+            .updatedTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
 
         return toDto(accountRepository.save(accountEntity));
@@ -124,7 +124,7 @@ public class AccountServiceImpl implements AccountService {
             .transactionType(TransactionType.DEPOSIT)
             .amount(amount)
             .fee(BigDecimal.ZERO)
-            .createdTimeStamp(TimeUtils.nowKst())
+            .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
 
         transactionRepository.save(transactionEntity);
@@ -171,7 +171,7 @@ public class AccountServiceImpl implements AccountService {
             .transactionType(TransactionType.WITHDRAW)
             .amount(amount)
             .fee(BigDecimal.ZERO)
-            .createdTimeStamp(TimeUtils.nowKst())
+            .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
             .build();
 
         transactionRepository.save(transactionEntity);
