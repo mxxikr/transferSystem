@@ -4,7 +4,6 @@ import com.transfer.system.dto.CommonResponseDTO;
 import com.transfer.system.dto.TransactionRequestDTO;
 import com.transfer.system.dto.TransactionResponseDTO;
 import com.transfer.system.enums.ResponseMessage;
-import com.transfer.system.enums.ResultCode;
 import com.transfer.system.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
