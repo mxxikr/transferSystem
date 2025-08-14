@@ -12,6 +12,7 @@ import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
 import com.transfer.system.repository.TransactionRepository;
 import com.transfer.system.enums.TransactionType;
+import com.transfer.system.utils.MoneyUtils;
 import com.transfer.system.utils.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +64,7 @@ public class AccountServiceImpl implements AccountService {
             .bankName(BANK_NAME)
             .accountType(accountCreateRequestDTO.getAccountType())
             .currencyType(accountCreateRequestDTO.getCurrencyType())
-            .balance(BigDecimal.ZERO)
+            .balance(MoneyUtils.normalize(BigDecimal.ZERO))
             .accountStatus(AccountStatus.ACTIVE)
             .createdTimeStamp(TimeUtils.nowKst())
             .updatedTimeStamp(TimeUtils.nowKst())
@@ -130,8 +131,8 @@ public class AccountServiceImpl implements AccountService {
 
         return AccountBalanceResponseDTO.builder()
             .accountNumber(accountEntity.getAccountNumber())
-            .amount(amount)
-            .balance(accountEntity.getBalance())
+            .amount(MoneyUtils.normalize(amount))
+            .balance(MoneyUtils.normalize(accountEntity.getBalance()))
             .build();
     }
 
@@ -177,8 +178,8 @@ public class AccountServiceImpl implements AccountService {
 
         return AccountBalanceResponseDTO.builder()
             .accountNumber(accountEntity.getAccountNumber())
-            .amount(amount)
-            .balance(accountEntity.getBalance())
+            .amount(MoneyUtils.normalize(amount))
+            .balance(MoneyUtils.normalize(accountEntity.getBalance()))
             .build();
     }
 
@@ -193,7 +194,7 @@ public class AccountServiceImpl implements AccountService {
             .bankName(e.getBankName())
             .accountType(e.getAccountType())
             .currencyType(e.getCurrencyType())
-            .balance(e.getBalance())
+            .balance(MoneyUtils.normalize(e.getBalance()))
             .accountStatus(e.getAccountStatus())
             .createdTimeStamp(e.getCreatedTimeStamp())
             .updatedTimeStamp(e.getUpdatedTimeStamp())

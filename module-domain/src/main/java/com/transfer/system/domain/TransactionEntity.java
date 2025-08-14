@@ -21,8 +21,8 @@ import java.util.UUID;
 @Table(name = "transaction_entity")
 public class TransactionEntity {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @UuidGenerator
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "BINARY(16)")
     private UUID transactionId; // 거래 고유 식별자
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -2,19 +2,16 @@ package com.transfer.system.policy;
 
 import com.transfer.system.exception.ErrorCode;
 import com.transfer.system.exception.TransferSystemException;
+import com.transfer.system.utils.MoneyUtils;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 @Getter
 @Component
 public class TransferPolicy {
-    public static final int FEE_SCALE = 2; // 수수료 소수점 자리수
-    public static final RoundingMode FEE_ROUNDING_MODE = RoundingMode.HALF_UP; // 수수료 반올림 방식
-
     private final BigDecimal feeRate; // 수수료율
     private final BigDecimal withdrawDailyLimit; // 출금 일일 한도
     private final BigDecimal transferDailyLimit; // 이체 일일 한도
@@ -43,7 +40,7 @@ public class TransferPolicy {
      * 수수료 계산
      */
     public BigDecimal calculateFee(BigDecimal amount) {
-        return amount.multiply(feeRate).setScale(FEE_SCALE, FEE_ROUNDING_MODE);
+        return MoneyUtils.normalize(amount.multiply(feeRate));
     }
 
     /**

@@ -12,6 +12,7 @@ import com.transfer.system.policy.PagingPolicy;
 import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
 import com.transfer.system.repository.TransactionRepository;
+import com.transfer.system.utils.MoneyUtils;
 import com.transfer.system.utils.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -186,8 +187,8 @@ public class TransactionServiceImpl implements TransactionService {
             .transactionId(e.getTransactionId())
             .fromAccountNumber(fromNumber)
             .toAccountNumber(toNumber)
-            .amount(e.getAmount())
-            .fee(e.getFee())
+            .amount(MoneyUtils.normalize(e.getAmount()))
+            .fee(MoneyUtils.normalize(e.getFee()))
             .transactionType(e.getTransactionType())
             .createdTimeStamp(e.getCreatedTimeStamp())
             .build();

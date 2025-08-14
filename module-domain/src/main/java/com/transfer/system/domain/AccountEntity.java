@@ -5,6 +5,7 @@ import com.transfer.system.enums.AccountType;
 import com.transfer.system.enums.CurrencyType;
 import com.transfer.system.exception.ErrorCode;
 import com.transfer.system.exception.TransferSystemException;
+import com.transfer.system.utils.MoneyUtils;
 import com.transfer.system.utils.TimeUtils;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,8 +23,7 @@ import java.util.UUID;
 @Table(name = "account_entity")
 public class AccountEntity {
     @Id
-    @UuidGenerator
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "BINARY(16)")
     private UUID accountId; // 계좌 고유 식별자
 
@@ -56,13 +56,13 @@ public class AccountEntity {
         if (this.balance.compareTo(amount) < 0) { // 잔액 부족 여부 확인
             throw new TransferSystemException(ErrorCode.INSUFFICIENT_BALANCE);
         }
-        this.balance = this.balance.subtract(amount);
+        this.balance = MoneyUtils.normalize(this.balance.subtract(amount));
         this.updatedTimeStamp = TimeUtils.nowKst();
     }
 
     // 입금
     public void addBalance(BigDecimal amount) {
-        this.balance = this.balance.add(amount);
+        this.balance = MoneyUtils.normalize(this.balance.add(amount));
         this.updatedTimeStamp = TimeUtils.nowKst();
     }
 
@@ -71,7 +71,7 @@ public class AccountEntity {
         if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
             throw new TransferSystemException(ErrorCode.NEGATIVE_BALANCE);
         }
-        this.balance = newBalance;
+        this.balance = MoneyUtils.normalize(newBalance);
         this.updatedTimeStamp = TimeUtils.nowKst();
     }
 }
