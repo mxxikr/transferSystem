@@ -25,13 +25,13 @@ public class TransferPolicy {
         @Value("${transfer.transfer-daily-limit}") BigDecimal transferDailyLimit) {
 
         if (feeRate == null || feeRate.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("수수료율은 0 이상이어야 합니다.");
+            throw new TransferSystemException(ErrorCode.INVALID_FEE);
         }
         if (withdrawDailyLimit == null || withdrawDailyLimit.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("출금 한도는 0 이상이어야 합니다.");
+            throw new TransferSystemException(ErrorCode.EXCEEDS_WITHDRAW_LIMIT);
         }
         if (transferDailyLimit == null || transferDailyLimit.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("이체 한도는 0 이상이어야 합니다.");
+            throw new TransferSystemException(ErrorCode.TRANSFER_LIMIT_EXCEEDED);
         }
 
         this.feeRate = feeRate;
