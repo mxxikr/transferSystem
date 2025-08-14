@@ -37,8 +37,18 @@ public class GlobalExceptionHandler {
             .body(CommonResponseDTO.failure(result, code.getMessage()));
     }
 
-    // 요청 파라미터 오류
-    @ExceptionHandler({MethodArgumentNotValidException.class,ConstraintViolationException.class, MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class, HttpMessageNotReadableException.class})
+    // 서버 내부 오류 처리
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class
+    })
+    public ResponseEntity<CommonResponseDTO<Void>> handleServerLikeBadInputs(Exception ex) {
+        log.warn("[INTERNAL_ERROR] {}", ex.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.INTERNAL_ERROR.getStatus())
+                .body(CommonResponseDTO.failure(ResultCode.ERROR_SERVER, ErrorCode.INTERNAL_ERROR.getMessage()));
+    }
+
+    // 잘못된 요청 처리
+    @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class})
     public ResponseEntity<CommonResponseDTO<Void>> handleBadRequest(Exception ex) {
         ErrorCode code = ErrorCode.INVALID_REQUEST;
         log.warn("[INVALID_REQUEST] {}", ex.getMessage());

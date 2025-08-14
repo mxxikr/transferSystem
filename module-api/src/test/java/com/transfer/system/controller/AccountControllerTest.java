@@ -132,6 +132,17 @@ class AccountControllerTest {
         performCreateRequest(dto)
             .andExpect(status().is(status.value()))
             .andExpect(jsonPath("$.message").value(errorCode.getMessage()));
+
+        verify(accountService).createAccount(any(AccountCreateRequestDTO.class));
+    }
+
+    private void expectCreateError_serviceNotCall(AccountCreateRequestDTO dto, HttpStatus status) throws Exception {
+        performCreateRequest(dto)
+            .andExpect(status().is(status.value()))
+            .andExpect(jsonPath("$.result_code").value(ResultCode.FAIL_INVALID_PARAMETER.getCode()))
+            .andExpect(jsonPath("$.message").value(ErrorCode.INVALID_REQUEST.getMessage()));
+
+        verify(accountService, never()).createAccount(any());
     }
 
     /**
@@ -149,6 +160,12 @@ class AccountControllerTest {
         performBalanceRequest(endpoint, dto)
             .andExpect(status().is(status.value()))
             .andExpect(jsonPath("$.message").value(errorCode.getMessage()));
+
+        if (endpoint.equals(Endpoint.DEPOSIT)) {
+            verify(accountService).deposit(eq(dto.getAccountNumber()), eq(dto.getAmount()));
+        } else {
+            verify(accountService).withdraw(eq(dto.getAccountNumber()), eq(dto.getAmount()));
+        }
     }
 
     // ========================= 계좌 생성 테스트 =========================
@@ -206,7 +223,7 @@ class AccountControllerTest {
                 .accountName("mxxikr")
                 .build();
 
-            expectCreateError(invalidRequest, ErrorCode.INVALID_REQUEST, HttpStatus.BAD_REQUEST);
+            expectCreateError_serviceNotCall(invalidRequest, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -242,6 +259,8 @@ class AccountControllerTest {
             performGetRequest(testAccountId)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value(ErrorCode.ACCOUNT_NOT_FOUND.getMessage()));
+
+            verify(accountService).getAccount(testAccountId);
         }
 
         /**
@@ -254,6 +273,8 @@ class AccountControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
                 .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
+
+            verify(accountService, never()).getAccount(any());
         }
     }
 
@@ -273,6 +294,8 @@ class AccountControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.SUCCESS_NO_DATA.getCode()))
                 .andExpect(jsonPath("$.message").value(ResponseMessage.ACCOUNT_DELETED.getMessage()));
+
+            verify(accountService).deleteAccount(testAccountId);
         }
 
         /**
@@ -286,6 +309,8 @@ class AccountControllerTest {
             performDeleteRequest(testAccountId)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value(ErrorCode.ACCOUNT_NOT_FOUND.getMessage()));
+
+            verify(accountService).deleteAccount(testAccountId);
         }
     }
 

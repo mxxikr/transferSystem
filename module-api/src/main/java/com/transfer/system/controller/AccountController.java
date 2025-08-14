@@ -21,7 +21,7 @@ public class AccountController {
 
     @Operation(summary = "계좌 생성")
     @PostMapping("/create")
-    public ResponseEntity<CommonResponseDTO<AccountResponseDTO>> createAccount(@RequestBody AccountCreateRequestDTO AccountCreateRequestDTO) {
+    public ResponseEntity<CommonResponseDTO<AccountResponseDTO>> createAccount(@Valid @RequestBody AccountCreateRequestDTO AccountCreateRequestDTO) {
         AccountResponseDTO response = accountService.createAccount(AccountCreateRequestDTO);
 
         return ResponseEntity.ok(CommonResponseDTO.successHasData(response, ResponseMessage.ACCOUNT_CREATED.getMessage()));

@@ -54,12 +54,13 @@
 3. 다음 명령어로 컨테이너 실행
 
     ```bash
+   ./gradlew clean :module-api:bootJar
     docker compose up --build
     ```
 
 4. 서버 실행 확인 및 Swagger UI 접속
 
-    - http://localhost:8080/swagger-ui.html
+    - http://localhost:8080/swagger-ui/index.html
 
 <br>
 
@@ -201,7 +202,7 @@
 
   ```json
   {
-    "accountNumber": "00125081300002",
+    "accountNumber": "00125081400001",
     "amount": 100000
   }
   ```
@@ -209,10 +210,14 @@
 
   ```json
   {
-    "result_code": 0,
-    "data": null,
+    "data": {
+        "accountNumber": "00125081400001",
+        "amount": 10000,
+        "balance": 10000.00
+    },
     "message": "출금이 완료되었습니다.",
-    "timestamp": "2025-08-13T14:51:20.364037028"
+    "timestamp": "2025-08-14T12:10:19.207306584",
+    "result_code": 1
   }
   ```
 
@@ -367,7 +372,7 @@
 
 ## 상태 및 오류 코드
 
-### 결과 코드
+### 결과 코드(`result_code`)
   - `1`
     - 성공
     - 요청이 성공적으로 처리되었으며 data 필드에 결과가 포함 경우 반환

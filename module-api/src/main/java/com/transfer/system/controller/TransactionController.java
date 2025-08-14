@@ -1,4 +1,4 @@
-package controller;
+package com.transfer.system.controller;
 
 import com.transfer.system.dto.CommonResponseDTO;
 import com.transfer.system.dto.TransactionRequestDTO;

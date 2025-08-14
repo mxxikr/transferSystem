@@ -23,6 +23,7 @@ import java.util.UUID;
 public class AccountEntity {
     @Id
     @UuidGenerator
+    @GeneratedValue
     @Column(columnDefinition = "BINARY(16)")
     private UUID accountId; // 계좌 고유 식별자
 

@@ -11,7 +11,7 @@ import com.transfer.system.exception.TransferSystemException;
 import com.transfer.system.service.TransactionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transfer.system.utils.TimeUtils;
-import controller.TransactionController;
+import com.transfer.system.controller.TransactionController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -113,6 +113,8 @@ class TransactionControllerTest {
         performTransferRequest(dto)
             .andExpect(status().is(status.value()))
             .andExpect(jsonPath("$.message").value(errorCode.getMessage()));
+
+        verify(transactionService).transfer(any(TransactionRequestDTO.class));
     }
 
     /**
@@ -125,6 +127,8 @@ class TransactionControllerTest {
         performHistoryRequest(accountNumber, 0, 10)
         .andExpect(status().is(status.value()))
         .andExpect(jsonPath("$.message").value(errorCode.getMessage()));
+
+        verify(transactionService).getTransactionHistory(eq(accountNumber), anyInt(), anyInt());
     }
 
     // ========================= 이체 테스트 =========================
@@ -274,6 +278,8 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.message").value(ResponseMessage.TRANSACTION_HISTORY_RETRIEVED.getMessage()))
                 .andExpect(jsonPath("$.data.content.length()").value(0))
                 .andExpect(jsonPath("$.data.totalElements").value(0));
+
+            verify(transactionService).getTransactionHistory(accountNumber, 0, 10);
         }
 
         /**
@@ -295,6 +301,8 @@ class TransactionControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
                 .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
+
+            verify(transactionService, never()).getTransactionHistory(anyString(), anyInt(), anyInt());
         }
 
         /**
@@ -307,6 +315,8 @@ class TransactionControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
                 .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
+
+            verify(transactionService, never()).getTransactionHistory(anyString(), anyInt(), anyInt());
         }
 
         /**
@@ -321,6 +331,8 @@ class TransactionControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
                 .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
+
+            verify(transactionService, never()).getTransactionHistory(anyString(), anyInt(), anyInt());
         }
 
         /**
@@ -332,6 +344,8 @@ class TransactionControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.result_code").value(ResultCode.ERROR_SERVER.getCode()))
                 .andExpect(jsonPath("$.message").value(ErrorCode.INTERNAL_ERROR.getMessage()));
+
+            verify(transactionService, never()).getTransactionHistory(anyString(), anyInt(), anyInt());
         }
     }
 }
