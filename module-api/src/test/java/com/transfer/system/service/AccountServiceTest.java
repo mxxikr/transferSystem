@@ -13,6 +13,7 @@ import com.transfer.system.exception.TransferSystemException;
 import com.transfer.system.policy.TransferPolicy;
 import com.transfer.system.repository.AccountRepository;
 import com.transfer.system.repository.TransactionRepository;
+import com.transfer.system.utils.MoneyUtils;
 import com.transfer.system.utils.TimeUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -88,6 +89,13 @@ class AccountServiceTest {
     // ========================== 공통 메서드 =========================
 
     /**
+     * 금액 정규화
+     */
+    private static BigDecimal MoneyNormalize(BigDecimal v) {
+        return MoneyUtils.normalize(v);
+    }
+
+    /**
      * 계좌 생성 시 예외 처리
      */
     private void expectCreateAccountException(AccountCreateRequestDTO dto, ErrorCode expectedError) {
@@ -149,7 +157,7 @@ class AccountServiceTest {
             assertEquals(accountCreateRequestDTO.getAccountName(), savedAccount.getAccountName());
             assertEquals(accountCreateRequestDTO.getAccountType(), savedAccount.getAccountType());
             assertEquals(accountCreateRequestDTO.getCurrencyType(), savedAccount.getCurrencyType());
-            assertEquals(BigDecimal.ZERO, savedAccount.getBalance());
+            assertEquals(0, savedAccount.getBalance().compareTo(MoneyNormalize(BigDecimal.ZERO)));
             assertEquals(AccountStatus.ACTIVE, savedAccount.getAccountStatus());
         }
 
@@ -304,7 +312,7 @@ class AccountServiceTest {
             verify(transactionRepository).save(any(TransactionEntity.class));
 
             AccountEntity savedAccount = accountCaptor.getValue();
-            assertEquals(initialBalance.add(depositAmount), savedAccount.getBalance());
+            assertEquals(0, savedAccount.getBalance().compareTo(initialBalance.add(depositAmount)));
         }
 
         /**
@@ -384,7 +392,7 @@ class AccountServiceTest {
 
             AccountEntity savedAccount = accountCaptor.getValue();
 
-            assertEquals(initialBalance.subtract(withdrawAmount), savedAccount.getBalance());
+            assertEquals(0, savedAccount.getBalance().compareTo(initialBalance.subtract(withdrawAmount)));
         }
 
         /**
