@@ -179,10 +179,13 @@ public class TransactionServiceImpl implements TransactionService {
      * Entity를 DTO로 변환
      */
     private TransactionResponseDTO toDto(TransactionEntity e) {
+        String fromNumber = (e.getFromAccount() != null) ? e.getFromAccount().getAccountNumber() : null;
+        String toNumber = (e.getToAccount() != null) ? e.getToAccount().getAccountNumber() : null;
+
         return TransactionResponseDTO.builder()
             .transactionId(e.getTransactionId())
-            .fromAccountNumber(e.getFromAccount().getAccountNumber())
-            .toAccountNumber(e.getToAccount().getAccountNumber())
+            .fromAccountNumber(fromNumber)
+            .toAccountNumber(toNumber)
             .amount(e.getAmount())
             .fee(e.getFee())
             .transactionType(e.getTransactionType())

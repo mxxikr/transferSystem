@@ -12,6 +12,8 @@ import java.math.RoundingMode;
 @Getter
 @Component
 public class TransferPolicy {
+    public static final int FEE_SCALE = 2; // 수수료 소수점 자리수
+    public static final RoundingMode FEE_ROUNDING_MODE = RoundingMode.HALF_UP; // 수수료 반올림 방식
 
     private final BigDecimal feeRate; // 수수료율
     private final BigDecimal withdrawDailyLimit; // 출금 일일 한도
@@ -21,6 +23,16 @@ public class TransferPolicy {
         @Value("${transfer.fee-rate}") BigDecimal feeRate,
         @Value("${transfer.withdraw-daily-limit}") BigDecimal withdrawDailyLimit,
         @Value("${transfer.transfer-daily-limit}") BigDecimal transferDailyLimit) {
+
+        if (feeRate == null || feeRate.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("수수료율은 0 이상이어야 합니다.");
+        }
+        if (withdrawDailyLimit == null || withdrawDailyLimit.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("출금 한도는 0 이상이어야 합니다.");
+        }
+        if (transferDailyLimit == null || transferDailyLimit.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("이체 한도는 0 이상이어야 합니다.");
+        }
 
         this.feeRate = feeRate;
         this.withdrawDailyLimit = withdrawDailyLimit;
