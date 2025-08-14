@@ -63,7 +63,7 @@ public class TransactionServiceImpl implements TransactionService {
             throw new TransferSystemException(ErrorCode.INVALID_AMOUNT);
         }
 
-        log.info("[TransactionService] From: {}, To: {}, Amount: {}", fromAccountNumber, toAccountNumber, amount);
+        log.debug("[TransactionService] From: {}, To: {}, Amount: {}", fromAccountNumber, toAccountNumber, amount);
 
         // 락 순서 고정
         String firstAccountNumber = fromAccountNumber.compareTo(toAccountNumber) <= 0 ? fromAccountNumber : toAccountNumber;
@@ -87,7 +87,7 @@ public class TransactionServiceImpl implements TransactionService {
         BigDecimal total = amount.add(fee); // 총 이쳬 금액
 
 
-        log.info("[TransactionService] 수수료 계산 결과 Amount : {}, Fee : {}, Total : {}", amount, fee, total);
+        log.debug("[TransactionService] 수수료 계산 결과 Amount : {}, Fee : {}, Total : {}", amount, fee, total);
 
         // 이체 한도 확인
         LocalDateTime startTime = TimeUtils.startOfTodayKst();
@@ -119,7 +119,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .build();
 
         TransactionEntity savedTransactionEntity = transactionRepository.save(transactionEntity);
-        log.info("[TranscationService] 이체 완료 거래ID : {}", savedTransactionEntity.getTransactionId());
+        log.debug("[TranscationService] 이체 완료 거래ID : {}", savedTransactionEntity.getTransactionId());
 
         return toDto(savedTransactionEntity);
     }
