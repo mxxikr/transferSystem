@@ -147,14 +147,10 @@
 
   ```json
   {
-    "result_code": 1,
-    "data": {
-        "accountNumber": "00125081300001",
-        "amount": 10000,
-        "balance": 20000.00
-    },
-    "message": "출금이 완료되었습니다.",
-    "timestamp": "2025-08-13T15:39:32.129588386"
+    "data": null,
+    "message": "계좌 삭제가 완료되었습니다.",
+    "timestamp": "2025-08-14T17:22:20.675108143",
+    "result_code": 0
   }
   ```
 
@@ -181,7 +177,7 @@
     "result_code": 1,
     "data": {
         "accountNumber": "00125081300001",
-        "amount": 10000,
+        "amount": 10000.00,
         "balance": 40000.00
     },
     "message": "입금이 완료되었습니다.",
@@ -212,7 +208,7 @@
   {
     "data": {
         "accountNumber": "00125081400001",
-        "amount": 10000,
+        "amount": 10000.00,
         "balance": 10000.00
     },
     "message": "출금이 완료되었습니다.",
