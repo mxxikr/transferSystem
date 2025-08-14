@@ -21,6 +21,7 @@ public class AccountNumberGeneratorService {
     private final EntityManager entityManager;
 
     private static final String ACCOUNT_PREFIX = "001";
+    private static final DateTimeFormatter YYMMDD = DateTimeFormatter.ofPattern("yyMMdd");
 
     @Transactional
     public String generateAccountNumber() {
@@ -46,7 +47,7 @@ public class AccountNumberGeneratorService {
     }
 
     private String format(LocalDate date, Long value) {
-        String datePart = date.format(DateTimeFormatter.ofPattern("yyMMdd")); // 6자리 날짜
+        String datePart = date.format(YYMMDD); // 6자리 날짜
         String sequencePart = String.format("%05d", value); // 5자리 시퀀스
         return ACCOUNT_PREFIX + datePart + sequencePart; // 001YYMMDD00001
     }

@@ -84,6 +84,9 @@ class AccountServiceTest {
                 .fee(BigDecimal.ZERO)
                 .createdTimeStamp(TimeUtils.nowKstLocalDateTime())
                 .build();
+
+        lenient().when(accountRepository.save(any(AccountEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(transactionRepository.save(any(TransactionEntity.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     // ========================== 공통 메서드 =========================
@@ -143,8 +146,6 @@ class AccountServiceTest {
         void createAccount_success() {
             when(accountNumberGeneratorService.generateAccountNumber()).thenReturn(testAccountNumber);
             when(accountRepository.existsByAccountNumber(testAccountNumber)).thenReturn(false);
-
-            when(accountRepository.save(any(AccountEntity.class))).thenReturn(accountEntity);
 
             accountService.createAccount(accountCreateRequestDTO);
 
@@ -302,7 +303,6 @@ class AccountServiceTest {
             BigDecimal depositAmount = new BigDecimal("50000");
 
             when(accountRepository.findByAccountNumberLock(testAccountNumber)).thenReturn(Optional.of(accountEntity));
-            when(transactionRepository.save(any(TransactionEntity.class))).thenReturn(mockTransaction);
 
             accountService.deposit(testAccountNumber, depositAmount);
 
