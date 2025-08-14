@@ -15,13 +15,21 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<TransactionEntity, UUID> {
-    @Query("""
-        SELECT te
-        FROM TransactionEntity te
-        WHERE te.fromAccount = :account
-           OR te.toAccount = :account
-        ORDER BY te.createdTimeStamp DESC
-    """)
+    @Query(
+        value = """
+            SELECT te
+            FROM TransactionEntity te
+            LEFT JOIN FETCH te.fromAccount fa
+            LEFT JOIN FETCH te.toAccount ta
+            WHERE te.fromAccount = :account OR te.toAccount = :account
+            ORDER BY te.createdTimeStamp DESC
+        """,
+        countQuery = """
+            SELECT COUNT(te)
+            FROM TransactionEntity te
+            WHERE te.fromAccount = :account OR te.toAccount = :account
+        """
+    )
     Page<TransactionEntity> findAllByAccount(@Param("account") AccountEntity account, Pageable pageable); // 특정 계좌의 모든 거래 내역 조회
 
     // 일일 한도 계산용 조회
@@ -36,9 +44,9 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
 
     // 계좌 삭제 전 거래 존재 여부
     @Query("""
-      SELECT CASE WHEN COUNT(te) > 0 THEN true ELSE false END
-      FROM TransactionEntity te
-      WHERE te.fromAccount = :accountEntity OR te.toAccount = :accountEntity
+        SELECT CASE WHEN COUNT(te) > 0 THEN true ELSE false END
+        FROM TransactionEntity te
+        WHERE te.fromAccount = :accountEntity OR te.toAccount = :accountEntity
     """)
     boolean existsByFromOrTo(@Param("accountEntity") AccountEntity accountEntity);
 }

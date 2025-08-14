@@ -25,13 +25,13 @@ public class TransferPolicy {
         @Value("${transfer.transfer-daily-limit}") BigDecimal transferDailyLimit) {
 
         if (feeRate == null || feeRate.compareTo(BigDecimal.ZERO) < 0) {
-            throw new TransferSystemException(ErrorCode.INVALID_FEE);
+            throw new TransferSystemException(ErrorCode.INTERNAL_ERROR);
         }
         if (withdrawDailyLimit == null || withdrawDailyLimit.compareTo(BigDecimal.ZERO) < 0) {
-            throw new TransferSystemException(ErrorCode.EXCEEDS_WITHDRAW_LIMIT);
+            throw new TransferSystemException(ErrorCode.INTERNAL_ERROR);
         }
         if (transferDailyLimit == null || transferDailyLimit.compareTo(BigDecimal.ZERO) < 0) {
-            throw new TransferSystemException(ErrorCode.TRANSFER_LIMIT_EXCEEDED);
+            throw new TransferSystemException(ErrorCode.INTERNAL_ERROR);
         }
 
         this.feeRate = feeRate;
@@ -43,7 +43,7 @@ public class TransferPolicy {
      * 수수료 계산
      */
     public BigDecimal calculateFee(BigDecimal amount) {
-        return amount.multiply(feeRate).setScale(2, RoundingMode.HALF_UP);
+        return amount.multiply(feeRate).setScale(FEE_SCALE, FEE_ROUNDING_MODE);
     }
 
     /**
